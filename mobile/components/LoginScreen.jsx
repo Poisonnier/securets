@@ -13,10 +13,11 @@ import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import API, { AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
 
 export default function LoginScreen({ onLoginSuccess }) {
-  const [email, setEmail] = useState('admin@securets.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPw, setShowPw] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -77,25 +78,36 @@ export default function LoginScreen({ onLoginSuccess }) {
           <Text style={styles.label}>EMAIL ADDRESS</Text>
           <TextInput
             style={styles.input}
-            placeholder="admin@securets.com"
+            placeholder="you@example.com"
             placeholderTextColor="#94A3B8"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
+            importantForAutofill="yes"
           />
         </View>
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>PASSWORD</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor="#94A3B8"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.pwRow}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="••••••••"
+              placeholderTextColor="#94A3B8"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPw}
+              autoCorrect={false}
+              textContentType="password"
+              importantForAutofill="yes"
+            />
+            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPw(v => !v)}>
+              <Text style={styles.eyeText}>{showPw ? '🙈' : '👁️'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {errorMessage ? (
@@ -112,7 +124,7 @@ export default function LoginScreen({ onLoginSuccess }) {
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.buttonText}>Sign In with Sanctum</Text>
+            <Text style={styles.buttonText}>Sign In</Text>
           )}
         </TouchableOpacity>
 
@@ -187,6 +199,9 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     fontSize: 14,
   },
+  pwRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  eyeBtn:  { padding: 10 },
+  eyeText: { fontSize: 18 },
   errorText: {
     color: '#EF4444',
     fontSize: 12,

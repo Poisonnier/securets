@@ -5,9 +5,7 @@ import {
   KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import * as Notifications from 'expo-notifications';
-import API, { AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
-import { integrationApi } from '../src/api/integrations';
+import API, { API_BASE_URL, AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
 
 const C = {
   dark: '#0F172A', mid: '#1E293B', blue: '#3D5AF1',
@@ -43,36 +41,34 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
       });
       if (res.data?.token) {
         await setStoredToken(res.data.token, { expiresAt: res.data.expires_at });
-        
-        // ── Clear fields BEFORE success callback ──
+
+        // Clear fields BEFORE success callback
         setEmail('');
         setPassword('');
         setError('');
 
+        // Propagate user data up — push token registration is handled
+        // centrally in App.jsx handleLoginSuccess via notifications.js
         onLoginSuccess?.(res.data.user);
-
-        // ── Register Expo push token ──
-        try {
-          const { status: existing } = await Notifications.getPermissionsAsync();
-          const finalStatus =
-            existing === 'granted'
-              ? existing
-              : (await Notifications.requestPermissionsAsync()).status;
-
-          if (finalStatus === 'granted') {
-            const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync();
-            await integrationApi.registerDevice(
-              expoPushToken,
-              `${Platform.OS}_device`,
-            );
-          }
-        } catch (_) {
-          // Non-fatal
-        }
       }
     } catch (e) {
       console.error('LoginModal Error:', e.response?.data || e.message);
-      const msg = e.response?.data?.message || e.response?.data?.errors?.email?.[0] || 'Incorrect email or password.';
+
+      const status = e?.response?.status;
+      let msg;
+
+      if (status === 422 || status === 401) {
+        // The request reached the API and it rejected the credentials.
+        msg = e.response?.data?.message || e.response?.data?.errors?.email?.[0] || 'Incorrect email or password.';
+      } else if (status >= 500) {
+        msg = 'SecureTS is temporarily unavailable (server error). Please try again in a moment.';
+      } else if (status) {
+        msg = `Sign-in failed (HTTP ${status}). Please try again.`;
+      } else {
+        // No response at all: the request never reached the API.
+        msg = `Cannot reach SecureTS at ${API_BASE_URL}. Check your connection and API URL.`;
+      }
+
       setError(msg);
     } finally {
       setLoading(false);
@@ -123,7 +119,10 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
+            importantForAutofill="yes"
             editable={!loading}
           />
 
@@ -137,6 +136,9 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPw}
+              autoCorrect={false}
+              textContentType="password"
+              importantForAutofill="yes"
               editable={!loading}
             />
             <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPw(v => !v)}>

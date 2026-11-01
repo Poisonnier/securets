@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  registerForPushNotificationsAsync,
+  addLoginApprovalNotificationListener,
+  addForegroundNotificationListener,
+} from './src/lib/notifications';
 
 import SplashScreen     from './components/SplashScreen';
 import OnboardingScreen from './components/OnboardingScreen';
@@ -22,6 +27,47 @@ export default function App() {
   const [user,  setUser]  = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Stores the event_id from a push notification tap so DashboardScreen
+  // can surface the correct approval popup immediately.
+  const [pushEventId, setPushEventId] = useState(null);
+
+  // Refs to hold listener cleanup functions so we can remove them on logout.
+  const tapListenerCleanupRef        = useRef(null);
+  const foregroundListenerCleanupRef = useRef(null);
+
+  // ── Attach / detach push notification listeners ───────────────────────────
+  const attachNotificationListeners = () => {
+    // Clean up any existing listeners first (idempotent)
+    tapListenerCleanupRef.current?.();
+    foregroundListenerCleanupRef.current?.();
+
+    // 1. User TAPS a push notification (background / killed state)
+    //    → navigate to Notifications tab and surface the approval popup
+    tapListenerCleanupRef.current = addLoginApprovalNotificationListener((data) => {
+      const eventId = data.event_id ?? data.id ?? null;
+      if (eventId) {
+        setPushEventId(eventId);
+      }
+      setActiveTab('notifications');
+    });
+
+    // 2. Push notification ARRIVES while app is foregrounded
+    //    → surface the approval popup on the current tab without changing tabs
+    foregroundListenerCleanupRef.current = addForegroundNotificationListener((data) => {
+      const eventId = data.event_id ?? data.id ?? null;
+      if (eventId) {
+        setPushEventId(eventId);
+      }
+    });
+  };
+
+  const detachNotificationListeners = () => {
+    tapListenerCleanupRef.current?.();
+    foregroundListenerCleanupRef.current?.();
+    tapListenerCleanupRef.current = null;
+    foregroundListenerCleanupRef.current = null;
+  };
+
   // ── After splash ─────────────────────────────────────────────────────────────
   const handleSplashFinish = async () => {
     try {
@@ -32,9 +78,25 @@ export default function App() {
           const { data } = await API.get('/mobile/me');
           setUser(data);
           await AsyncStorage.setItem('user_data', JSON.stringify(data));
-        } catch (_) {
-          await clearStoredSession();
-          await AsyncStorage.removeItem('user_data');
+          // Re-attach listeners for restored sessions
+          attachNotificationListeners();
+        } catch (error) {
+          // Only a 401 means the token itself was rejected. A network blip or a
+          // 5xx (for example the API's database being briefly unreachable) must
+          // not sign the user out, otherwise a short outage wipes a valid session.
+          if (error?.response?.status === 401) {
+            await clearStoredSession();
+            await AsyncStorage.removeItem('user_data');
+          } else {
+            // Keep the session alive with the last known profile.
+            const cached = await AsyncStorage.getItem('user_data');
+            if (cached) {
+              try {
+                setUser(JSON.parse(cached));
+                attachNotificationListeners();
+              } catch (_) {}
+            }
+          }
         }
       } else {
         await AsyncStorage.removeItem('user_data');
@@ -55,10 +117,20 @@ export default function App() {
   const handleLoginSuccess = async (userData) => {
     setUser(userData);
     try { await AsyncStorage.setItem('user_data', JSON.stringify(userData)); } catch (_) {}
+
+    // Register / refresh the Expo push token so the backend can reach this device
+    try { await registerForPushNotificationsAsync(); } catch (_) {}
+
+    // Wire up notification listeners now that the user is authenticated
+    attachNotificationListeners();
   };
 
   // ── Logout ───────────────────────────────────────────────────────────────────
   const handleLogout = async () => {
+    // Detach listeners before clearing state
+    detachNotificationListeners();
+    setPushEventId(null);
+
     try {
       await API.post('/mobile/logout');
     } catch (_) {}
@@ -70,6 +142,11 @@ export default function App() {
     setUser(null);
     setActiveTab('dashboard');
   };
+
+  // Clean up listeners when App unmounts
+  useEffect(() => {
+    return () => detachNotificationListeners();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -90,6 +167,8 @@ export default function App() {
           onTabChange={setActiveTab}
           onLoginSuccess={handleLoginSuccess}
           onLogout={handleLogout}
+          pushEventId={pushEventId}
+          onPushEventConsumed={() => setPushEventId(null)}
         />
       )}
     </View>

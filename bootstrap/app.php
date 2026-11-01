@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Reverb private-channel auth for the mobile client. The app posts to
+    // `${API_BASE_URL}/broadcasting/auth`, so the endpoint must live on the API
+    // surface (bearer token, CSRF-exempt) instead of Laravel's session-based
+    // default `/broadcasting/auth` route.
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        ['prefix' => 'api', 'middleware' => ['api', 'auth:sanctum']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'api/*',

@@ -100,7 +100,9 @@ export const getStoredToken = async () => {
   const meta = await getStoredTokenMeta();
   const expiresAt = meta?.expiresAt ? Date.parse(meta.expiresAt) : NaN;
 
-  if (!meta || Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+  // Allow a 30-second grace window to prevent clock-drift false-expiries.
+  const GRACE_MS = 30_000;
+  if (!meta || Number.isNaN(expiresAt) || expiresAt <= Date.now() - GRACE_MS) {
     await clearStoredSession();
     return null;
   }
@@ -114,9 +116,16 @@ export const setStoredToken = async (token, { expiresAt } = {}) => {
     return;
   }
 
-  const finalExpiresAt = expiresAt
-    ? new Date(expiresAt).toISOString()
-    : new Date(Date.now() + (AUTH_SESSION_MINUTES * 60 * 1000)).toISOString();
+  let finalExpiresAt;
+  if (expiresAt) {
+    finalExpiresAt = new Date(expiresAt).toISOString();
+  } else if (AUTH_SESSION_MINUTES > 0) {
+    finalExpiresAt = new Date(Date.now() + (AUTH_SESSION_MINUTES * 60 * 1000)).toISOString();
+  } else {
+    // Server returned 0 = infinite token; default to 1 year on the client side
+    // so we still clear stale storage on yearly basis.
+    finalExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  }
 
   await setStorageItem(TOKEN_KEY, token);
   await setStorageItem(TOKEN_META_KEY, JSON.stringify({ expiresAt: finalExpiresAt }));

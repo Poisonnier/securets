@@ -37,7 +37,7 @@ export default function IntegrationScreen() {
     useEffect(() => {
         fetchApps();
         // Poll for new integrations (sync with web side)
-        const interval = setInterval(fetchApps, 10000);
+        const interval = setInterval(fetchApps, 5000);
         return () => clearInterval(interval);
     }, [fetchApps]);
 

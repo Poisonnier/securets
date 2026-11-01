@@ -79,4 +79,54 @@ class MobileApiTest extends TestCase
                 ]
             ]);
     }
+
+    public function test_can_archive_and_delete_login_events(): void
+    {
+        $user = User::factory()->create();
+        $integration = $user->integrations()->create([
+            'name' => 'Test App',
+            'url' => 'https://example.com',
+            'secret_key' => 'ABC',
+        ]);
+        $event = $integration->loginEvents()->create([
+            'user_id' => $user->id,
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        // Archive
+        $this->patchJson("/api/login-events/{$event->id}/archive")
+            ->assertOk();
+        $this->assertTrue($event->fresh()->is_archived);
+
+        // Delete
+        $this->deleteJson("/api/login-events/{$event->id}")
+            ->assertOk();
+        $this->assertDatabaseMissing('login_events', ['id' => $event->id]);
+    }
+
+    public function test_mobile_client_can_reach_the_reverb_broadcast_auth_endpoint(): void
+    {
+        $user = User::factory()->create();
+
+        // The mobile app authenticates Reverb private channels by POSTing to
+        // `${EXPO_PUBLIC_API_URL}/broadcasting/auth`, i.e. /api/broadcasting/auth.
+        // That endpoint used to be registered only on the session-based
+        // `/broadcasting/auth` route, so every mobile request 404'd and realtime
+        // sync silently degraded to polling.
+        $payload = [
+            'channel_name' => "private-user.{$user->id}",
+            'socket_id' => '1234.5678',
+        ];
+
+        // The route must exist on the API surface and refuse anonymous callers.
+        $this->postJson('/api/broadcasting/auth', $payload)
+            ->assertUnauthorized();
+
+        // A Sanctum bearer token gets past the guard.
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/broadcasting/auth', $payload)
+            ->assertSuccessful();
+    }
 }

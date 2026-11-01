@@ -295,11 +295,11 @@
 </div>
 
 <script>
-const CSRF = document.querySelector('meta[name="csrf-token"]').content;
-const settings = document.body.dataset;
+const CSRF       = document.querySelector('meta[name="csrf-token"]').content;
+const settings   = document.body.dataset;
 const ATTEMPT_URL = settings.attemptUrl;
-const IS_FIRST = settings.isFirst === '1';
-const APP_NAME = settings.appName;
+const IS_FIRST   = settings.isFirst === '1';
+const APP_NAME   = settings.appName;
 
 function show(id) {
     ['firstPanel', 'waitPanel', 'donePanel'].forEach((p) => {
@@ -307,29 +307,26 @@ function show(id) {
     });
 }
 
-const previewStatus = document.getElementById('previewStatus');
-const previewTitle = document.getElementById('previewTitle');
-const previewText = document.getElementById('previewText');
-const previewPlaceholder = document.getElementById('previewPlaceholder');
+const previewStatus           = document.getElementById('previewStatus');
+const previewTitle            = document.getElementById('previewTitle');
+const previewText             = document.getElementById('previewText');
+const previewPlaceholder      = document.getElementById('previewPlaceholder');
 const previewPlaceholderTitle = document.getElementById('previewPlaceholderTitle');
-const previewPlaceholderText = document.getElementById('previewPlaceholderText');
-const previewFrame = document.getElementById('previewFrame');
-const previewLink = document.getElementById('previewLink');
+const previewPlaceholderText  = document.getElementById('previewPlaceholderText');
+const previewFrame            = document.getElementById('previewFrame');
+const previewLink             = document.getElementById('previewLink');
 
 function setPreviewState(status, redirectUrl = null) {
     previewStatus.className = 'status-chip ' + status;
 
     if (status === 'approved' || status === 'auto') {
         previewStatus.textContent = status === 'auto' ? 'Auto-approved' : 'Approved';
-        previewTitle.textContent = APP_NAME + ' is ready';
-        previewText.textContent = 'The protected app has been unlocked for this session. It loads beside the login card, and you can also open it in a new tab.';
+        previewTitle.textContent  = APP_NAME + ' is ready';
+        previewText.textContent   = 'The protected app has been unlocked for this session. It loads beside the login card, and you can also open it in a new tab.';
         previewPlaceholder.classList.add('hidden');
         previewFrame.classList.remove('hidden');
         previewLink.classList.remove('hidden');
-        if (redirectUrl) {
-            previewFrame.src = redirectUrl;
-            previewLink.href = redirectUrl;
-        }
+        if (redirectUrl) { previewFrame.src = redirectUrl; previewLink.href = redirectUrl; }
         return;
     }
 
@@ -337,38 +334,36 @@ function setPreviewState(status, redirectUrl = null) {
     previewFrame.removeAttribute('src');
     previewLink.classList.add('hidden');
 
-    if (status === 'declined') {
-        previewStatus.textContent = 'Declined';
-        previewTitle.textContent = 'Login declined';
-        previewText.textContent = 'SecureTS blocked this attempt, so the protected app stays unavailable on the web side.';
+    if (status === 'declined' || status === 'expired') {
+        previewStatus.textContent        = status === 'declined' ? 'Declined' : 'Timed out';
+        previewTitle.textContent         = status === 'declined' ? 'Login declined' : 'Request expired';
+        previewText.textContent          = status === 'declined'
+            ? 'SecureTS blocked this attempt, so the protected app stays unavailable on the web side.'
+            : 'No response was received within the time limit. Please start a new login attempt.';
+        previewPlaceholderTitle.textContent = status === 'declined' ? 'Access denied' : 'Session expired';
+        previewPlaceholderText.textContent  = status === 'declined'
+            ? 'This login request was declined from the mobile app. Start a new login attempt if you still need to open ' + APP_NAME + '.'
+            : 'The approval window has closed. Return to the gate page to try again.';
         previewPlaceholder.classList.remove('hidden');
-        previewPlaceholderTitle.textContent = 'Access denied';
-        previewPlaceholderText.textContent = 'This login request was declined from the mobile app. Start a new login attempt if you still need to open ' + APP_NAME + '.';
         return;
     }
 
-    previewStatus.textContent = status === 'pending' ? 'Waiting for approval' : 'Awaiting action';
-    previewTitle.textContent = 'Secure launch area';
-    previewText.textContent = 'The protected app will open here after SecureTS finishes the current login check.';
-    previewPlaceholder.classList.remove('hidden');
+    previewStatus.textContent        = status === 'pending' ? 'Waiting for approval' : 'Awaiting action';
+    previewTitle.textContent         = 'Secure launch area';
+    previewText.textContent          = 'The protected app will open here after SecureTS finishes the current login check.';
     previewPlaceholderTitle.textContent = status === 'pending' ? 'Waiting for approval' : 'Waiting for a decision';
-    previewPlaceholderText.textContent = 'Approve the request from the mobile app to load ' + APP_NAME + ' beside this login page, or decline it to keep the app blocked.';
+    previewPlaceholderText.textContent  = 'Approve the request from the mobile app to load ' + APP_NAME + ' beside this login page, or decline it to keep the app blocked.';
+    previewPlaceholder.classList.remove('hidden');
 }
 
 async function attempt(body) {
     const res = await fetch(ATTEMPT_URL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': CSRF,
-        },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
         body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) {
-        throw new Error(data.message || Object.values(data.errors || {}).flat()[0] || 'Request failed');
-    }
+    if (!res.ok) throw new Error(data.message || Object.values(data.errors || {}).flat()[0] || 'Request failed');
     return data;
 }
 
@@ -377,7 +372,7 @@ function finish(data) {
 
     if (data.status === 'auto' || data.status === 'approved') {
         document.getElementById('doneTitle').textContent = 'Approved';
-        document.getElementById('doneText').textContent = 'The app is unlocked. You can continue in the preview area or open it directly.';
+        document.getElementById('doneText').textContent  = 'The app is unlocked. You can continue in the preview area or open it directly.';
         doneLink.classList.remove('hidden');
         if (data.redirect_url) doneLink.href = data.redirect_url;
         setPreviewState(data.status, data.redirect_url);
@@ -386,40 +381,87 @@ function finish(data) {
     }
     if (data.status === 'declined') {
         document.getElementById('doneTitle').textContent = 'Declined';
-        document.getElementById('doneText').textContent = 'This login was denied from your phone and the web side stays blocked.';
+        document.getElementById('doneText').textContent  = 'This login was denied from your phone and the web side stays blocked.';
         doneLink.classList.add('hidden');
         setPreviewState('declined');
         show('donePanel');
         return;
     }
+    if (data.status === 'expired') {
+        document.getElementById('doneTitle').textContent = 'Timed out';
+        document.getElementById('doneText').textContent  = 'No response was received in time. Return to the gate page to start a new attempt.';
+        doneLink.classList.add('hidden');
+        setPreviewState('expired');
+        show('donePanel');
+        return;
+    }
+
+    // Still pending — start/continue long-polling
     setPreviewState('pending');
     show('waitPanel');
-    poll(data.event_id);
+    longPoll(data.event_id);
 }
 
-async function poll(eventId) {
-    const url = ATTEMPT_URL.replace(/\/$/, '') + '/events/' + eventId;
-    const tick = async () => {
-        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) return;
-        const data = await res.json();
-        document.getElementById('waitStatus').textContent = 'Status: ' + data.status;
-        setPreviewState(data.status, data.redirect_url);
-        if (data.status !== 'pending') {
-            clearInterval(timer);
-            finish(data);
+// ── Long-Poll ──────────────────────────────────────────────────────────────────
+// Keeps a single HTTP request open for up to 40 s.  When the server responds:
+//   • resolved status → call finish()
+//   • still pending   → reconnect immediately for another 40-second window
+// An AbortController lets us cleanly cancel on page unload.
+let activeController = null;
+
+async function longPoll(eventId) {
+    // Cancel any previous in-flight request
+    activeController?.abort();
+    const controller = new AbortController();
+    activeController = controller;
+
+    const waitUrl = ATTEMPT_URL.replace(/\/$/, '') + '/events/' + eventId + '/wait';
+
+    const attemptPoll = async () => {
+        if (controller.signal.aborted) return;
+        try {
+            const res = await fetch(waitUrl, {
+                headers: { 'Accept': 'application/json' },
+                signal: controller.signal,
+            });
+
+            if (!res.ok) {
+                // Network hiccup — retry after 3 s
+                await new Promise((r) => setTimeout(r, 3000));
+                return attemptPoll();
+            }
+
+            const data = await res.json();
+            document.getElementById('waitStatus').textContent = 'Status: ' + data.status;
+            setPreviewState(data.status, data.redirect_url);
+
+            if (data.status !== 'pending') {
+                finish(data);   // Resolved: approved / declined / expired
+            } else {
+                // Server timed out (40 s) — reconnect immediately
+                return attemptPoll();
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') return;  // User navigated away
+            // Any other error: retry after 5 s to avoid a tight error loop
+            await new Promise((r) => setTimeout(r, 5000));
+            return attemptPoll();
         }
     };
-    const timer = setInterval(tick, 2000);
-    tick();
+
+    attemptPoll();
 }
 
+// Abort open long-poll connections when the user leaves the page
+window.addEventListener('beforeunload', () => activeController?.abort());
+
+// ── Event wiring ──────────────────────────────────────────────────────────────
 document.getElementById('firstForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('firstBtn');
     const err = document.getElementById('firstError');
     err.textContent = '';
-    btn.disabled = true;
+    btn.disabled    = true;
     try {
         const data = await attempt({
             credential_username: document.getElementById('username').value.trim(),
@@ -428,7 +470,7 @@ document.getElementById('firstForm').addEventListener('submit', async (e) => {
         finish(data);
     } catch (ex) {
         err.textContent = ex.message;
-        btn.disabled = false;
+        btn.disabled    = false;
     }
 });
 
@@ -443,3 +485,4 @@ if (!IS_FIRST) {
 </script>
 </body>
 </html>
+
