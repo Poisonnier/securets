@@ -71,3 +71,7 @@ Route::prefix('api')->group(function () {
         ]);
     });
 });
+
+// ── Admin Web Routes (folder: routes/admin/) ──────────────────────────────────
+require __DIR__ . '/admin/admin.php';
+
