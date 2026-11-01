@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\LoginAttemptBroadcast;
 use App\Models\Device;
 use App\Models\Integration;
 use App\Models\LoginEvent;
@@ -13,26 +14,25 @@ use PragmaRX\Google2FA\Google2FA;
 
 class IntegrationController extends Controller
 {
-    public function webIndex()
+    public function index(Request $request)
     {
-        $integrations = Auth::user()
-            ->integrations()
+        $integrations = Integration::where('user_id', $request->user()->id)
             ->withCount('loginEvents')
             ->latest()
             ->get();
 
+        if ($request->wantsJson()) {
+            return response()->json($integrations->map(fn ($i) => $this->formatIntegration($i)));
+        }
+
         return view('integrations', compact('integrations'));
     }
 
-    public function index(Request $request)
+    public function integrationsData(Request $request)
     {
-        $integrations = $request->user()
-            ->integrations()
-            ->latest()
-            ->get()
-            ->map(fn ($i) => $this->formatIntegration($i));
-
-        return response()->json($integrations);
+        return response()->json(
+            Integration::where('user_id', $request->user()->id)->get()
+        );
     }
 
     public function store(Request $request)
@@ -95,6 +95,37 @@ class IntegrationController extends Controller
         return response()->json($this->eventPayload($event->load('integration')));
     }
 
+    /**
+     * Long-poll variant for external (Target App) integrations.
+     * Authenticated via secret_key, mirrors gateLongPoll behaviour.
+     */
+    public function publicEventLongPoll(Request $request, LoginEvent $event)
+    {
+        $integration = $this->integrationFromSecret($request);
+        abort_unless($event->integration_id === $integration->id, 403);
+
+        set_time_limit(60);
+
+        $maxIterations = 40;
+
+        for ($i = 0; $i < $maxIterations; $i++) {
+            $event->refresh();
+
+            if ($event->status !== 'pending') {
+                return response()->json($this->eventPayload($event->load('integration')));
+            }
+
+            usleep(1_000_000);
+
+            if (ob_get_level()) {
+                ob_flush();
+            }
+            flush();
+        }
+
+        return response()->json($this->eventPayload($event->load('integration')));
+    }
+
     public function gateShow(Integration $integration)
     {
         abort_unless($integration->is_active, 403);
@@ -112,9 +143,25 @@ class IntegrationController extends Controller
         $isFirst = ! $integration->hasCompletedFirstLogin();
         $data = $request->validate([
             'credential_username' => $isFirst ? 'required|string|max:255' : 'nullable|string|max:255',
-            // shortcut: password is required on first visit but never stored; persist it encrypted if a Target App needs replay
             'credential_password' => $isFirst ? 'required|string|max:255' : 'nullable|string',
         ]);
+
+        // ── Deduplication guard ──────────────────────────────────────────────
+        // If the user refreshes the gate page we must NOT create a second
+        // pending event for the same integration. Reuse any pending event
+        // that was created within the last 2 minutes.
+        if (! $isFirst) {
+            $existing = LoginEvent::where('integration_id', $integration->id)
+                ->where('status', 'pending')
+                ->where('created_at', '>=', now()->subMinutes(2))
+                ->latest()
+                ->first();
+
+            if ($existing) {
+                $existing->setRelation('integration', $integration);
+                return response()->json($this->eventPayload($existing));
+            }
+        }
 
         $event = $this->recordLoginAttempt(
             $integration,
@@ -129,6 +176,50 @@ class IntegrationController extends Controller
     {
         abort_unless($event->integration_id === $integration->id, 404);
 
+        return response()->json($this->eventPayload($event->load('integration')));
+    }
+
+    /**
+     * Long-poll: hold the HTTP connection open until the event is resolved
+     * (approved / declined / expired) or 40 seconds have elapsed.
+     *
+     * The gate page calls this instead of hammering the DB every 2 s.
+     * On timeout the server returns the current (still-pending) payload so
+     * the browser can immediately reconnect for another 40-second window.
+     *
+     * Max PHP execution time must be above 45 s for the server to host this;
+     * the typical default is 30 s, so we keep the loop to 40 iterations.
+     */
+    public function gateLongPoll(Integration $integration, LoginEvent $event)
+    {
+        abort_unless($event->integration_id === $integration->id, 404);
+        abort_unless($integration->is_active, 403);
+
+        // Raise the script timeout for this request only
+        set_time_limit(60);
+
+        $maxIterations = 40; // 40 × 1 s = 40 s max wait
+
+        for ($i = 0; $i < $maxIterations; $i++) {
+            // Re-fetch a fresh copy from the DB each second
+            $event->refresh();
+
+            if ($event->status !== 'pending') {
+                // Resolved — return immediately
+                return response()->json($this->eventPayload($event->load('integration')));
+            }
+
+            // Still pending — sleep 1 second then try again
+            usleep(1_000_000);
+
+            // Flush any output buffers so the connection stays alive
+            if (ob_get_level()) {
+                ob_flush();
+            }
+            flush();
+        }
+
+        // Timeout — return the current pending state so the browser reconnects
         return response()->json($this->eventPayload($event->load('integration')));
     }
 
@@ -154,11 +245,28 @@ class IntegrationController extends Controller
     {
         $events = LoginEvent::with('integration:id,name,favicon_url')
             ->where('user_id', $request->user()->id)
+            ->where('is_archived', false)
             ->latest()
             ->take(50)
             ->get();
 
         return response()->json($events);
+    }
+
+    public function archiveEvent(Request $request, LoginEvent $event)
+    {
+        abort_unless($event->user_id === $request->user()->id, 403);
+        $event->update(['is_archived' => true]);
+
+        return response()->json(['message' => 'Event archived']);
+    }
+
+    public function destroyEvent(Request $request, LoginEvent $event)
+    {
+        abort_unless($event->user_id === $request->user()->id, 403);
+        $event->delete();
+
+        return response()->json(['message' => 'Event deleted']);
     }
 
     public function pendingApprovals(Request $request)
@@ -178,6 +286,25 @@ class IntegrationController extends Controller
         $g2fa = new Google2FA();
         $code = $g2fa->getCurrentOtp($integration->secret_key);
         $remaining = 30 - (time() % 30);
+
+        // ── TOTP Access Tracking ─────────────────────────────────────────────
+        // Since we cannot monitor external sites directly, we treat TOTP code 
+        // access as a "Login Attempt". We throttle this to once every 30 seconds 
+        // to avoid spamming the database during frontend polling.
+        $existing = LoginEvent::where('integration_id', $integration->id)
+            ->where('status', 'auto')
+            ->where('created_at', '>=', now()->subSeconds(25))
+            ->first();
+
+        if (!$existing) {
+            $this->recordLoginAttempt(
+                $integration,
+                $request,
+                null, // username unknown
+                $request->ip(),
+                $request->userAgent() . ' (TOTP Access)'
+            );
+        }
 
         return response()->json(['code' => $code, 'expires_in' => $remaining]);
     }
@@ -225,6 +352,10 @@ class IntegrationController extends Controller
         ]);
 
         if (! $isFirst) {
+            // 1. Real-time WebSocket broadcast (instant, for online devices)
+            LoginAttemptBroadcast::dispatch($event, $integration);
+
+            // 2. Expo push notification (for offline / background devices)
             $this->sendPushApproval($integration->user, $integration, $event);
         }
 
@@ -301,7 +432,10 @@ class IntegrationController extends Controller
         ])->values()->toArray();
 
         try {
-            Http::post('https://exp.host/--/api/v2/push/send', $messages);
+            $response = Http::post('https://exp.host/--/api/v2/push/send', $messages);
+            if (!$response->ok()) {
+                Log::error('Expo Push Error: ' . $response->body());
+            }
         } catch (\Throwable $e) {
             Log::warning('Push notification failed: '.$e->getMessage());
         }

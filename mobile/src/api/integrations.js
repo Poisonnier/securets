@@ -27,6 +27,12 @@ export const integrationApi = {
     // Get all login events (history)
     history: () => API.get('/login-events'),
 
+    // Archive a login event
+    archive: (eventId) => API.patch(`/login-events/${eventId}/archive`),
+
+    // Delete a login event
+    delete: (eventId) => API.delete(`/login-events/${eventId}`),
+
     // Get pending approvals
     pending: () => API.get('/login-events/pending'),
 

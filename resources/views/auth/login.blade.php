@@ -142,6 +142,12 @@
             transition: color 0.2s;
         }
         .forgot-link:hover { color: #fff; text-decoration: underline; }
+        .session-note {
+            font-size: 12px;
+            color: rgba(255,255,255,0.72);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
 
         /* ── Buttons ── */
         .btn-row { display: flex; gap: 12px; }
@@ -310,6 +316,10 @@
             <div class="forgot-row">
                 <a href="#" class="forgot-link">Forgot Password?</a>
             </div>
+
+            <p class="session-note">
+                For security, this account stays signed in for up to {{ config('session.lifetime') }} minutes after the browser closes.
+            </p>
 
             <!-- Buttons -->
             <div class="btn-row">
