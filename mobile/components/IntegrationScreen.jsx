@@ -34,7 +34,12 @@ export default function IntegrationScreen() {
         }
     }, []);
 
-    useEffect(() => { fetchApps(); }, [fetchApps]);
+    useEffect(() => {
+        fetchApps();
+        // Poll for new integrations (sync with web side)
+        const interval = setInterval(fetchApps, 5000);
+        return () => clearInterval(interval);
+    }, [fetchApps]);
 
     // Poll TOTP codes every second
     useEffect(() => {
@@ -167,9 +172,17 @@ export default function IntegrationScreen() {
                     <Text style={styles.headerTitle}>My Apps</Text>
                     <Text style={styles.headerSub}>{apps.length} integration{apps.length !== 1 ? 's' : ''}</Text>
                 </View>
-                <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-                    <Text style={styles.addBtnText}>+ Add App</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                        style={[styles.addBtn, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
+                        onPress={() => { setRefreshing(true); fetchApps(); }}
+                    >
+                        <Text style={[styles.addBtnText, { color: COLORS.text }]}>Refresh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                        <Text style={styles.addBtnText}>+ Add App</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {loading ? (

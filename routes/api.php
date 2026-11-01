@@ -6,13 +6,19 @@ use App\Http\Controllers\MobileAuthController;
 use Illuminate\Support\Facades\Route;
 
 // ── Mobile Auth (public) ──────────────────────────────────────────────────────
+// Keep the legacy /api/login path alive so refreshed or cached mobile clients
+// can still sign back in while the app converges on /api/mobile/login.
+Route::post('/login', [MobileAuthController::class, 'login']);
+
 Route::prefix('mobile')->group(function () {
-    Route::post('/login',  [MobileAuthController::class, 'login']);
+    Route::post('/login', [MobileAuthController::class, 'login']);
 });
 
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────
 Route::post('/integrations/login-event', [IntegrationController::class, 'publicLoginEvent']);
-Route::get('/login-events/{event}', [IntegrationController::class, 'publicEventStatus'])
+Route::get('/login-events/{event}',      [IntegrationController::class, 'publicEventStatus'])
+    ->whereNumber('event');
+Route::get('/login-events/{event}/wait', [IntegrationController::class, 'publicEventLongPoll'])
     ->whereNumber('event');
 
 // ── Authenticated API routes (Sanctum token) ──────────────────────────────────
@@ -34,6 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Login events (called by external app or simulator)
     Route::post('/integrations/{integration}/login-event', [IntegrationController::class, 'loginEvent']);
     Route::patch('/login-events/{event}/respond',          [IntegrationController::class, 'respondToEvent']);
+    Route::patch('/login-events/{event}/archive',          [IntegrationController::class, 'archiveEvent']);
+    Route::delete('/login-events/{event}',                 [IntegrationController::class, 'destroyEvent']);
     Route::get('/login-events',                            [IntegrationController::class, 'history']);
     Route::get('/login-events/pending',                    [IntegrationController::class, 'pendingApprovals']);
 

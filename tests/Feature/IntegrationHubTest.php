@@ -59,6 +59,23 @@ test('a user can add an external app on the web hub', function () {
         ->assertSee('https://payroll.example/login');
 });
 
+test('card actions hand the app id over as a data attribute instead of inline interpolation', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->postJson('/web/integrations', [
+            'name' => 'Payroll',
+            'url' => 'https://payroll.example/login',
+        ])->assertCreated();
+
+    $this->actingAs($user)
+        ->get(route('integrations'))
+        ->assertOk()
+        ->assertSee('data-app-id=', false)
+        ->assertSee('onclick="removeApp(this)"', false)
+        ->assertSee('onchange="toggleApp(this)"', false);
+});
+
 test('integrations belong only to the owning account on web and mobile', function () {
     $owner = User::factory()->create();
     $other = User::factory()->create();

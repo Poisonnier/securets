@@ -102,6 +102,13 @@ test('the owner can decline a pending login', function () {
     $this->patchJson('/api/login-events/'.$eventId.'/respond', ['decision' => 'declined'])
         ->assertOk()
         ->assertJson(['status' => 'declined']);
+
+    $this->getJson('/api/login-events/'.$eventId.'?secret_key='.$integration->secret_key)
+        ->assertOk()
+        ->assertJson([
+            'status' => 'declined',
+            'redirect_url' => null,
+        ]);
 });
 
 test('the hosted gate collects credentials on first visit', function () {
@@ -120,6 +127,17 @@ test('the hosted gate collects credentials on first visit', function () {
         ->assertJson(['status' => 'auto', 'is_first' => true]);
 
     expect(LoginEvent::first()->credential_username)->toBe('alex@example.com');
+});
+
+test('the hosted gate shows the linked app area beside the login flow', function () {
+    $user = User::factory()->create();
+    $integration = makeIntegration($user);
+
+    $this->get('/i/'.$integration->gate_token)
+        ->assertOk()
+        ->assertSee('App Preview')
+        ->assertSee('will open here after SecureTS finishes the current login check')
+        ->assertSee('Open '.$integration->name);
 });
 
 test('pending approvals endpoint returns matching events and is not shadowed by the public event route', function () {
