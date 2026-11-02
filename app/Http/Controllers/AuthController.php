@@ -71,9 +71,21 @@ class AuthController extends Controller
     }
 
     // ── Dashboard ─────────────────────────────────────────────
-    public function dashboard()
+    public function dashboard(Request $request)
     {
-        return view('dashboard');
+        $user = $request->user();
+
+        $activeIntegrationsCount = $user->integrations()->where('is_active', true)->count();
+        $threatsBlockedCount     = $user->loginEvents()->where('status', 'declined')->count();
+        $pendingAlertsCount      = $user->loginEvents()->where('status', 'pending')->count();
+        $totalAlertsCount        = $user->loginEvents()->where('is_archived', false)->count();
+
+        return view('dashboard', [
+            'protectionStatus'   => $activeIntegrationsCount > 0 ? 'Active' : 'Standby',
+            'threatsBlocked'     => $threatsBlockedCount,
+            'pendingAlertsCount' => $pendingAlertsCount,
+            'alertsCount'        => $totalAlertsCount,
+        ]);
     }
 
     // ── Logout ────────────────────────────────────────────────

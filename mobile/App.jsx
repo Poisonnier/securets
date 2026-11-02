@@ -11,6 +11,17 @@ import SplashScreen     from './components/SplashScreen';
 import OnboardingScreen from './components/OnboardingScreen';
 import DashboardScreen  from './components/DashboardScreen';
 import API, { clearStoredSession, getStoredToken } from './src/api/client';
+import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+
+function ThemedRoot({ children }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+      {children}
+    </View>
+  );
+}
 
 /**
  * App Navigation Flow:
@@ -149,32 +160,32 @@ export default function App() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+    <ThemeProvider preference={user?.theme ?? 'dark'}>
+      <ThemedRoot>
+        {phase === 'splash' && (
+          <SplashScreen onFinish={handleSplashFinish} />
+        )}
 
-      {phase === 'splash' && (
-        <SplashScreen onFinish={handleSplashFinish} />
-      )}
+        {phase === 'onboarding' && (
+          <OnboardingScreen onFinish={handleOnboardingFinish} />
+        )}
 
-      {phase === 'onboarding' && (
-        <OnboardingScreen onFinish={handleOnboardingFinish} />
-      )}
-
-      {phase === 'main' && (
-        <DashboardScreen
-          user={user}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onLoginSuccess={handleLoginSuccess}
-          onLogout={handleLogout}
-          pushEventId={pushEventId}
-          onPushEventConsumed={() => setPushEventId(null)}
-        />
-      )}
-    </View>
+        {phase === 'main' && (
+          <DashboardScreen
+            user={user}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            onLoginSuccess={handleLoginSuccess}
+            onLogout={handleLogout}
+            pushEventId={pushEventId}
+            onPushEventConsumed={() => setPushEventId(null)}
+          />
+        )}
+      </ThemedRoot>
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0F1E' },
+  container: { flex: 1 },
 });

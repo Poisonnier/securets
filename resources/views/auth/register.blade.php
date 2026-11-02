@@ -223,7 +223,7 @@
             <img src="{{ asset('images/securets-logo.png') }}" alt="SecureThreatShield Logo">
         </div>
 
-        <h1 class="page-title">Please Log in to your account.</h1>
+        <h1 class="page-title">Create your account.</h1>
 
         <!-- Register form -->
         <form method="POST" action="{{ route('register') }}">

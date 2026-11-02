@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Platform, Modal,
@@ -6,11 +6,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import API, { API_BASE_URL, AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
-
-const C = {
-  dark: '#0F172A', mid: '#1E293B', blue: '#3D5AF1',
-  border: 'rgba(255,255,255,0.1)', text: '#F8FAFC', muted: '#94A3B8',
-};
+import { useTheme } from '../src/theme/ThemeContext';
 
 /**
  * LoginModal – floating bottom-sheet that can be shown over any screen.
@@ -20,6 +16,8 @@ const C = {
  *   onLoginSuccess – (user) => void
  */
 export default function LoginModal({ visible, onClose, onLoginSuccess }) {
+  const C = useTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -173,14 +171,14 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (C) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: C.mid,
+    backgroundColor: C.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 28,
@@ -190,7 +188,7 @@ const styles = StyleSheet.create({
   },
   handle: {
     width: 40, height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: C.border,
     alignSelf: 'center', marginBottom: 24,
   },
   logoWrap: { alignItems: 'center', marginBottom: 24 },
@@ -208,7 +206,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1, marginBottom: 6, marginTop: 14,
   },
   input: {
-    backgroundColor: '#0F172A',
+    backgroundColor: C.inputBg,
     borderWidth: 1.5, borderColor: C.border,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
     color: C.text, fontSize: 14, marginBottom: 0,

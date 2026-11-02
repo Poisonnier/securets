@@ -321,10 +321,16 @@
                     </div>
 
                     <div class="app-card-actions">
-                        <button class="btn-sm info" onclick="copyText('{{ $app->gateUrl() }}', 'Login page link copied!')">
+                        <button class="btn-sm info"
+                                data-copy-value="{{ $app->gateUrl() }}"
+                                data-copy-msg="Login page link copied!"
+                                onclick="copyFromButton(this)">
                             Copy Login Link
                         </button>
-                        <button class="btn-sm info" onclick="copyText('{{ $app->secret_key }}', 'Secret key copied!')">
+                        <button class="btn-sm info"
+                                data-copy-value="{{ $app->secret_key }}"
+                                data-copy-msg="Secret key copied!"
+                                onclick="copyFromButton(this)">
                             Copy Secret
                         </button>
                         <button class="btn-sm danger" data-app-id="{{ $app->id }}" onclick="removeApp(this)">
@@ -482,6 +488,19 @@ function copyText(value, message) {
     navigator.clipboard.writeText(value).then(() => setFlash('success', message)).catch(() => setFlash('error', 'Could not copy.'));
 }
 
+function copyFromButton(button) {
+    copyText(button.dataset.copyValue ?? '', button.dataset.copyMsg ?? 'Copied!');
+}
+
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // ── TOTP Timer ───────────────────────────────────────────────────────────────
 async function loadTotpForApp(appId) {
     try {
@@ -560,22 +579,32 @@ async function loadHistory() {
             return;
         }
 
-        const rows = data.map(e => `
-            <tr id="event-${e.id}">
-                <td><strong>${e.integration?.name ?? '–'}</strong></td>
-                <td style="color:var(--text-muted)">${e.device ?? ''} ${e.ip_address ? '· ' + e.ip_address : ''}</td>
-                <td><span class="badge ${e.status}">${e.status}</span></td>
+        const validStatuses = ['pending', 'approved', 'declined', 'auto', 'expired'];
+        const rows = data.map(e => {
+            const id = Number(e.id) || 0;
+            const status = validStatuses.includes(e.status) ? e.status : 'auto';
+            const appName = escapeHtml(e.integration?.name ?? '–');
+            const device = escapeHtml(e.device ?? '');
+            const ip = e.ip_address ? '· ' + escapeHtml(e.ip_address) : '';
+            const createdAt = escapeHtml(new Date(e.created_at).toLocaleString());
+
+            return `
+            <tr id="event-${id}">
+                <td><strong>${appName}</strong></td>
+                <td style="color:var(--text-muted)">${device} ${ip}</td>
+                <td><span class="badge ${status}">${status}</span></td>
                 <td style="color:var(--text-muted)">
                     <div style="display:flex;align-items:center;justify-content:space-between">
-                        <span>${new Date(e.created_at).toLocaleString()}</span>
+                        <span>${createdAt}</span>
                         <div style="display:flex;gap:8px">
-                            <button onclick="archiveEvent(${e.id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Archive">📦</button>
-                            <button onclick="deleteEvent(${e.id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Delete">🗑️</button>
+                            <button onclick="archiveEvent(${id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Archive">📦</button>
+                            <button onclick="deleteEvent(${id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Delete">🗑️</button>
                         </div>
                     </div>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
         
         if (tbody.innerHTML !== rows) {
             tbody.innerHTML = rows;
