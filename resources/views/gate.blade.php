@@ -316,6 +316,16 @@ const previewPlaceholderText  = document.getElementById('previewPlaceholderText'
 const previewFrame            = document.getElementById('previewFrame');
 const previewLink             = document.getElementById('previewLink');
 
+function isSafeHttpUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (_) {
+        return false;
+    }
+}
+
 function setPreviewState(status, redirectUrl = null) {
     previewStatus.className = 'status-chip ' + status;
 
@@ -326,7 +336,10 @@ function setPreviewState(status, redirectUrl = null) {
         previewPlaceholder.classList.add('hidden');
         previewFrame.classList.remove('hidden');
         previewLink.classList.remove('hidden');
-        if (redirectUrl) { previewFrame.src = redirectUrl; previewLink.href = redirectUrl; }
+        if (isSafeHttpUrl(redirectUrl)) {
+            previewFrame.src = redirectUrl;
+            previewLink.href = redirectUrl;
+        }
         return;
     }
 
@@ -374,7 +387,7 @@ function finish(data) {
         document.getElementById('doneTitle').textContent = 'Approved';
         document.getElementById('doneText').textContent  = 'The app is unlocked. You can continue in the preview area or open it directly.';
         doneLink.classList.remove('hidden');
-        if (data.redirect_url) doneLink.href = data.redirect_url;
+        if (isSafeHttpUrl(data.redirect_url)) doneLink.href = data.redirect_url;
         setPreviewState(data.status, data.redirect_url);
         show('donePanel');
         return;

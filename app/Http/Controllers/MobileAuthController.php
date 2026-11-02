@@ -50,6 +50,7 @@ class MobileAuthController extends Controller
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
+                'theme' => $user->preference('theme', SettingsController::DEFAULT_PREFERENCES['theme']),
             ],
         ]);
     }
@@ -72,6 +73,7 @@ class MobileAuthController extends Controller
             'id'    => $request->user()->id,
             'name'  => $request->user()->name,
             'email' => $request->user()->email,
+            'theme' => $request->user()->preference('theme', SettingsController::DEFAULT_PREFERENCES['theme']),
         ]);
     }
 }

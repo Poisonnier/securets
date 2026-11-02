@@ -312,10 +312,7 @@
                 @enderror
             </div>
 
-            <!-- Forgot password -->
-            <div class="forgot-row">
-                <a href="#" class="forgot-link">Forgot Password?</a>
-            </div>
+            {{-- Forgot password link removed: no password-reset route exists yet. --}}
 
             <p class="session-note">
                 For security, this account stays signed in for up to {{ config('session.lifetime') }} minutes after the browser closes.

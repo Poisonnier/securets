@@ -28,6 +28,16 @@ class IntegrationController extends Controller
         return view('integrations', compact('integrations'));
     }
 
+    public function webIndex(Request $request)
+    {
+        $integrations = Integration::where('user_id', $request->user()->id)
+            ->withCount('loginEvents')
+            ->latest()
+            ->get();
+
+        return view('integrations', compact('integrations'));
+    }
+
     public function integrationsData(Request $request)
     {
         return response()->json(
@@ -39,7 +49,7 @@ class IntegrationController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'url' => 'required|url|max:255',
+            'url' => 'required|url:http,https|max:255',
         ]);
 
         $g2fa = new Google2FA();
@@ -104,26 +114,7 @@ class IntegrationController extends Controller
         $integration = $this->integrationFromSecret($request);
         abort_unless($event->integration_id === $integration->id, 403);
 
-        set_time_limit(60);
-
-        $maxIterations = 40;
-
-        for ($i = 0; $i < $maxIterations; $i++) {
-            $event->refresh();
-
-            if ($event->status !== 'pending') {
-                return response()->json($this->eventPayload($event->load('integration')));
-            }
-
-            usleep(1_000_000);
-
-            if (ob_get_level()) {
-                ob_flush();
-            }
-            flush();
-        }
-
-        return response()->json($this->eventPayload($event->load('integration')));
+        return $this->waitForEventResolution($event);
     }
 
     public function gateShow(Integration $integration)
@@ -181,45 +172,49 @@ class IntegrationController extends Controller
 
     /**
      * Long-poll: hold the HTTP connection open until the event is resolved
-     * (approved / declined / expired) or 40 seconds have elapsed.
+     * (approved / declined / expired) or 10 seconds have elapsed.
      *
-     * The gate page calls this instead of hammering the DB every 2 s.
-     * On timeout the server returns the current (still-pending) payload so
-     * the browser can immediately reconnect for another 40-second window.
-     *
-     * Max PHP execution time must be above 45 s for the server to host this;
-     * the typical default is 30 s, so we keep the loop to 40 iterations.
+     * Releases the session lock immediately and exits early on client disconnect
+     * so concurrent requests cannot exhaust PHP workers.
      */
-    public function gateLongPoll(Integration $integration, LoginEvent $event)
+    public function gateLongPoll(Request $request, Integration $integration, LoginEvent $event)
     {
         abort_unless($event->integration_id === $integration->id, 404);
         abort_unless($integration->is_active, 403);
 
-        // Raise the script timeout for this request only
-        set_time_limit(60);
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
 
-        $maxIterations = 40; // 40 × 1 s = 40 s max wait
+        return $this->waitForEventResolution($event);
+    }
+
+    private function waitForEventResolution(LoginEvent $event)
+    {
+        ignore_user_abort(false);
+        set_time_limit(15);
+
+        $maxIterations = 10; // 10 × 1 s = 10 s bounded wait window
 
         for ($i = 0; $i < $maxIterations; $i++) {
-            // Re-fetch a fresh copy from the DB each second
+            if (connection_aborted()) {
+                break;
+            }
+
             $event->refresh();
 
             if ($event->status !== 'pending') {
-                // Resolved — return immediately
                 return response()->json($this->eventPayload($event->load('integration')));
             }
 
-            // Still pending — sleep 1 second then try again
             usleep(1_000_000);
 
-            // Flush any output buffers so the connection stays alive
             if (ob_get_level()) {
                 ob_flush();
             }
             flush();
         }
 
-        // Timeout — return the current pending state so the browser reconnects
         return response()->json($this->eventPayload($event->load('integration')));
     }
 
@@ -373,17 +368,30 @@ class IntegrationController extends Controller
             'is_first' => (bool) $event->is_first_login,
             'status' => $event->status,
             'requires_approval' => $event->status === 'pending',
-            'redirect_url' => $allowed ? $event->integration->url : null,
+            'redirect_url' => $allowed ? $this->safeRedirectUrl($event->integration->url ?? null) : null,
         ];
+    }
+
+    private function safeRedirectUrl(?string $url): ?string
+    {
+        if (! is_string($url) || $url === '') {
+            return null;
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+
+        return is_string($scheme) && in_array(strtolower($scheme), ['http', 'https'], true)
+            ? $url
+            : null;
     }
 
     private function integrationFromSecret(Request $request): Integration
     {
-        $secret = $request->input('secret_key') ?? $request->header('X-Integration-Secret');
+        $secret = $request->header('X-Integration-Secret') ?? $request->post('secret_key');
         abort_unless(is_string($secret) && $secret !== '', 401, 'Invalid secret key');
 
         $integration = Integration::where('secret_key', $secret)->first();
-        abort_unless($integration, 401, 'Invalid secret key');
+        abort_unless($integration && hash_equals((string) $integration->secret_key, $secret), 401, 'Invalid secret key');
 
         return $integration;
     }

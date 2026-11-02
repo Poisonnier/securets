@@ -72,7 +72,7 @@ test('later login with the same secret requires approval', function () {
 
     $eventId = $second->json('event_id');
 
-    $this->getJson('/api/login-events/'.$eventId.'?secret_key='.$integration->secret_key)
+    $this->getJson('/api/login-events/'.$eventId, ['X-Integration-Secret' => $integration->secret_key])
         ->assertOk()
         ->assertJson(['status' => 'pending', 'event_id' => $eventId]);
 
@@ -81,7 +81,7 @@ test('later login with the same secret requires approval', function () {
         ->assertOk()
         ->assertJson(['status' => 'approved']);
 
-    $this->getJson('/api/login-events/'.$eventId.'?secret_key='.$integration->secret_key)
+    $this->getJson('/api/login-events/'.$eventId, ['X-Integration-Secret' => $integration->secret_key])
         ->assertOk()
         ->assertJson([
             'status' => 'approved',
@@ -103,7 +103,7 @@ test('the owner can decline a pending login', function () {
         ->assertOk()
         ->assertJson(['status' => 'declined']);
 
-    $this->getJson('/api/login-events/'.$eventId.'?secret_key='.$integration->secret_key)
+    $this->getJson('/api/login-events/'.$eventId, ['X-Integration-Secret' => $integration->secret_key])
         ->assertOk()
         ->assertJson([
             'status' => 'declined',

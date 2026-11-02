@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator, Alert, FlatList, Image, RefreshControl,
     StyleSheet, Text, TouchableOpacity, View,
@@ -6,12 +6,7 @@ import {
 import { integrationApi } from '../src/api/integrations';
 import { createReverbClient, disconnectReverb } from '../src/lib/reverb';
 import { getStoredToken } from '../src/api/client';
-
-const COLORS = {
-    dark: '#0F172A', mid: '#1E293B', blue: '#3D5AF1', blueLight: '#818CF8',
-    border: 'rgba(255,255,255,0.08)', text: '#F8FAFC', muted: '#94A3B8',
-    danger: '#EF4444', success: '#22C55E', warning: '#EAB308',
-};
+import { useTheme } from '../src/theme/ThemeContext';
 
 const STATUS_COLORS = {
     pending:  { bg: 'rgba(234,179,8,0.12)',  text: '#FACC15' },
@@ -30,6 +25,8 @@ const STATUS_COLORS = {
  * Requires the `user` prop from DashboardScreen to set up the private channel.
  */
 export default function NotificationScreen({ user }) {
+    const COLORS = useTheme();
+    const styles = useMemo(() => createStyles(COLORS), [COLORS]);
     const [pending,   setPending]   = useState([]);
     const [history,   setHistory]   = useState([]);
     const [loading,   setLoading]   = useState(true);
@@ -303,11 +300,12 @@ export default function NotificationScreen({ user }) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.dark },
+const createStyles = (COLORS) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.bg },
     header: {
         flexDirection: 'row', alignItems: 'center', gap: 10,
         paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+        backgroundColor: COLORS.surface,
         borderBottomWidth: 1, borderBottomColor: COLORS.border,
     },
     headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
@@ -318,7 +316,7 @@ const styles = StyleSheet.create({
     badgeDotText: { color: '#fff', fontSize: 12, fontWeight: '700' },
     wsIndicator: { fontSize: 11, fontWeight: '600', marginRight: 6 },
     refreshBtn: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: COLORS.subtle,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
@@ -329,7 +327,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     tabs: { flexDirection: 'row', padding: 12, gap: 8 },
-    tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
+    tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center', backgroundColor: COLORS.subtle },
     tabBtnActive: { backgroundColor: 'rgba(61,90,241,0.15)' },
     tabBtnText: { color: COLORS.muted, fontSize: 13, fontWeight: '600' },
     tabBtnTextActive: { color: COLORS.blueLight },
@@ -339,12 +337,12 @@ const styles = StyleSheet.create({
     emptyText:  { color: COLORS.muted, fontSize: 14, textAlign: 'center' },
 
     approvalCard: {
-        backgroundColor: COLORS.mid,
+        backgroundColor: COLORS.card,
         borderWidth: 1, borderColor: 'rgba(234,179,8,0.25)',
         borderRadius: 14, padding: 16, marginBottom: 12,
     },
     approvalTop:    { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
-    approvalFavicon:{ width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
+    approvalFavicon:{ width: 40, height: 40, borderRadius: 8, backgroundColor: COLORS.subtle, alignItems: 'center', justifyContent: 'center' },
     approvalApp:    { color: COLORS.text, fontSize: 15, fontWeight: '600' },
     approvalMeta:  { color: COLORS.muted, fontSize: 12, marginTop: 2 },
     approvalActions:{ flexDirection: 'row', gap: 8 },
@@ -353,7 +351,7 @@ const styles = StyleSheet.create({
     btnDecline: { flex: 1, backgroundColor: 'rgba(239,68,68,0.12)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)', borderRadius: 8, padding: 11, alignItems: 'center' },
     btnDeclineText: { color: '#F87171', fontWeight: '700', fontSize: 14 },
     historyCard: {
-        backgroundColor: COLORS.mid,
+        backgroundColor: COLORS.card,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: COLORS.border,
@@ -366,7 +364,7 @@ const styles = StyleSheet.create({
         gap: 12,
         padding: 14,
     },
-    historyFavicon: { width: 36, height: 36, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', justifyContent: 'center' },
+    historyFavicon: { width: 36, height: 36, borderRadius: 8, backgroundColor: COLORS.subtle, alignItems: 'center', justifyContent: 'center' },
     historyApp:  { color: COLORS.text, fontSize: 14, fontWeight: '600' },
     historyMeta: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
     historyTime: { color: COLORS.muted, fontSize: 11, marginTop: 2 },

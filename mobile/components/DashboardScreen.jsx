@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar, Modal, Pressable,
@@ -10,9 +10,10 @@ import NotificationScreen from './NotificationScreen';
 import SettingsScreen     from './SettingsScreen';
 import LoginModal         from './LoginModal';
 import { integrationApi } from '../src/api/integrations';
+import { useTheme } from '../src/theme/ThemeContext';
 
 // ─── Logo Header ────────────────────────────────────────────────────────────
-function LogoHeader() {
+function LogoHeader({ styles }) {
   return (
     <View style={styles.logoRow}>
       <View style={styles.hexOuter}><Text style={styles.hexLock}>🔒</Text></View>
@@ -52,17 +53,28 @@ function DashboardHome({
   approvalDecision,
   onOpenNotifications,
   onOpenIntegrations,
+  styles,
 }) {
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [alertsCount, setAlertsCount] = useState(0);
+  const [threatsBlockedCount, setThreatsBlockedCount] = useState(0);
+  const [protectionStatus, setProtectionStatus] = useState('Active');
 
   useEffect(() => {
     if (!user) return;
     const fetchRecent = async () => {
       try {
-        const res = await integrationApi.history();
-        setRecentNotifications(res.data.slice(0, 3));
-        setAlertsCount(res.data.length);
+        const [historyRes, appsRes] = await Promise.all([
+          integrationApi.history(),
+          integrationApi.list(),
+        ]);
+        const events = historyRes.data ?? [];
+        const apps   = appsRes.data ?? [];
+
+        setRecentNotifications(events.slice(0, 3));
+        setAlertsCount(events.length);
+        setThreatsBlockedCount(events.filter((e) => e.status === 'declined').length);
+        setProtectionStatus(apps.some((a) => a.is_active) ? 'Active' : 'Standby');
       } catch (_) {}
     };
     fetchRecent();
@@ -134,11 +146,11 @@ function DashboardHome({
             <View style={styles.statsGrid}>
               <View style={[styles.statCard, styles.statBlue]}>
                 <Text style={styles.statLabel}>Protection Status</Text>
-                <Text style={[styles.statValue, { color: '#818CF8' }]}>Active</Text>
+                <Text style={[styles.statValue, { color: '#818CF8' }]}>{protectionStatus}</Text>
               </View>
               <View style={[styles.statCard, styles.statGreen]}>
                 <Text style={styles.statLabel}>Threats Blocked</Text>
-                <Text style={[styles.statValue, { color: '#4ADE80' }]}>0</Text>
+                <Text style={[styles.statValue, { color: '#4ADE80' }]}>{threatsBlockedCount}</Text>
               </View>
               <View style={[styles.statCard, styles.statYellow]}>
                 <Text style={styles.statLabel}>Auth Latency</Text>
@@ -235,6 +247,7 @@ function ApprovalPopup({
   onDismiss,
   onRespond,
   approvalDecision,
+  styles,
 }) {
   if (!visible || !event) return null;
 
@@ -276,7 +289,7 @@ function ApprovalPopup({
 }
 
 // ─── Guest Gate (shown over Integration/Alerts when not logged in) ───────────
-function GuestGate({ tabName, onLoginPress }) {
+function GuestGate({ tabName, onLoginPress, styles }) {
   return (
     <View style={styles.gateWrap}>
       <Text style={{ fontSize: 56, marginBottom: 18 }}>🔒</Text>
@@ -296,6 +309,8 @@ export default function DashboardScreen({
   user, activeTab, onTabChange, onLoginSuccess, onLogout,
   pushEventId, onPushEventConsumed,
 }) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(null);
   const [approvalPopupVisible, setApprovalPopupVisible] = useState(false);
@@ -456,18 +471,19 @@ export default function DashboardScreen({
             approvalDecision={approvalDecision}
             onOpenNotifications={() => onTabChange('notifications')}
             onOpenIntegrations={() => onTabChange('integrations')}
+            styles={styles}
           />
         );
 
       case 'integrations':
         return isLoggedIn
           ? <IntegrationScreen />
-          : <GuestGate tabName="Integration Hub" onLoginPress={openLogin} />;
+          : <GuestGate tabName="Integration Hub" onLoginPress={openLogin} styles={styles} />;
 
       case 'notifications':
         return isLoggedIn
           ? <NotificationScreen user={user} />
-          : <GuestGate tabName="Login Approvals" onLoginPress={openLogin} />;
+          : <GuestGate tabName="Login Approvals" onLoginPress={openLogin} styles={styles} />;
 
       case 'settings':
         return (
@@ -481,18 +497,18 @@ export default function DashboardScreen({
         );
 
       default:
-        return <DashboardHome user={user} />;
+        return <DashboardHome user={user} styles={styles} />;
     }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
 
       {/* Header — only on dashboard tab */}
       {activeTab === 'dashboard' && (
         <View style={styles.header}>
-          <LogoHeader />
+          <LogoHeader styles={styles} />
         </View>
       )}
 
@@ -539,6 +555,7 @@ export default function DashboardScreen({
           onDismiss={dismissApprovalPopup}
           onRespond={respondToApproval}
           approvalDecision={approvalDecision}
+          styles={styles}
         />
       )}
 
@@ -552,18 +569,18 @@ export default function DashboardScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0F1E' },
+const createStyles = (theme) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.bg },
 
   // Header
   header: {
-    backgroundColor: '#0F172A',
+    backgroundColor: theme.surface,
     paddingTop: 52, paddingBottom: 14, paddingHorizontal: 20,
     borderBottomWidth: 1, borderBottomColor: 'rgba(56,102,230,0.3)',
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   hexOuter: {
-    width: 30, height: 30, backgroundColor: '#1E293B',
+    width: 30, height: 30, backgroundColor: theme.card,
     borderRadius: 6, alignItems: 'center', justifyContent: 'center',
   },
   hexLock: { fontSize: 14 },
@@ -577,27 +594,27 @@ const styles = StyleSheet.create({
   sbr: { width: 13, height: 15, backgroundColor: '#2980B9' },
   shieldOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   shieldCheck: { color: 'white', fontSize: 12, fontWeight: '700' },
-  brandName: { fontSize: 15, fontWeight: '800', color: 'white' },
+  brandName: { fontSize: 15, fontWeight: '800', color: theme.text },
   brandTs:   { color: '#3866E6' },
-  brandSub:  { fontSize: 8, color: '#64748B', fontWeight: '500' },
+  brandSub:  { fontSize: 8, color: theme.muted, fontWeight: '500' },
 
   // Welcome
   welcomeBanner: {
-    backgroundColor: '#0F172A',
+    backgroundColor: theme.surface,
     paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: 1, borderBottomColor: theme.border,
   },
-  welcomeTitle: { color: 'white', fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  welcomeTitle: { color: theme.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
   welcomeSub:   { color: '#3866E6', fontSize: 13, fontWeight: '500' },
 
   // Summary Section
   summarySection: {
-    backgroundColor: '#1E293B',
+    backgroundColor: theme.card,
     borderRadius: 18,
     padding: 16,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: theme.border,
   },
   summaryHeader: {
     flexDirection: 'row',
@@ -606,7 +623,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   summaryTitle: {
-    color: 'white',
+    color: theme.text,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -620,29 +637,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomColor: theme.border,
   },
   summaryIconWrap: {
     width: 36,
     height: 36,
-    backgroundColor: '#0F172A',
+    backgroundColor: theme.surface,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   summaryItemTitle: {
-    color: '#F8FAFC',
+    color: theme.text,
     fontSize: 14,
     fontWeight: '600',
   },
   summaryItemMeta: {
-    color: '#64748B',
+    color: theme.muted,
     fontSize: 12,
     marginTop: 2,
   },
   summaryChevron: {
-    color: '#64748B',
+    color: theme.muted,
     fontSize: 20,
     fontWeight: '300',
     marginLeft: 8,
@@ -652,7 +669,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryEmptyText: {
-    color: '#64748B',
+    color: theme.muted,
     fontSize: 13,
   },
 
@@ -663,7 +680,7 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: '25%',
   },
   homeApprovalCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: theme.card,
     borderWidth: 1,
     borderColor: 'rgba(234,179,8,0.3)',
     borderRadius: 18,
@@ -696,18 +713,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   homeApprovalApp: {
-    color: '#F8FAFC',
+    color: theme.text,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
   homeApprovalMeta: {
-    color: '#94A3B8',
+    color: theme.muted,
     fontSize: 13,
     marginBottom: 8,
   },
   homeApprovalText: {
-    color: '#CBD5E1',
+    color: theme.muted,
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 14,
@@ -733,17 +750,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239,68,68,0.3)',
   },
   homeApprovalDeclineText: { color: '#F87171', fontWeight: '700' },
-  emptyTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  emptyText:  { color: '#64748B', fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  emptyText:  { color: theme.muted, fontSize: 13, textAlign: 'center', lineHeight: 20 },
 
   // Guest gate
   gateWrap: {
     flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40,
   },
-  gateTitle: { color: '#F8FAFC', fontSize: 20, fontWeight: '800', marginBottom: 10 },
-  gateSub:   { color: '#94A3B8', fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  gateTitle: { color: theme.text, fontSize: 20, fontWeight: '800', marginBottom: 10 },
+  gateSub:   { color: theme.muted, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
   gateBtn: {
-    backgroundColor: '#3D5AF1', borderRadius: 12,
+    backgroundColor: theme.blue, borderRadius: 12,
     paddingVertical: 14, paddingHorizontal: 40, alignItems: 'center',
   },
   gateBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
@@ -751,7 +768,7 @@ const styles = StyleSheet.create({
   // Bottom nav
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
+    backgroundColor: theme.surface,
     borderTopWidth: 1,
     borderTopColor: 'rgba(56,102,230,0.3)',
     paddingBottom: 28, paddingTop: 10,
@@ -760,25 +777,25 @@ const styles = StyleSheet.create({
   navItem:  { alignItems: 'center', flex: 1, gap: 4 },
   navSquare: {
     width: 44, height: 38,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: theme.subtle,
     borderRadius: 8, alignItems: 'center', justifyContent: 'center',
   },
   navSquareActive: { backgroundColor: '#3866E6' },
   navIcon:  { fontSize: 17 },
-  navLabel: { fontSize: 10, color: '#64748B', fontWeight: '500' },
-  navLabelActive: { color: '#818CF8' },
+  navLabel: { fontSize: 10, color: theme.muted, fontWeight: '500' },
+  navLabelActive: { color: theme.blueLight },
 
   popupBackdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.72)',
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   popupCard: {
-    width: '100%', maxWidth: 360, backgroundColor: '#1E293B',
+    width: '100%', maxWidth: 360, backgroundColor: theme.card,
     borderRadius: 16, padding: 22, borderWidth: 1, borderColor: 'rgba(234,179,8,0.35)',
   },
   popupTitle: { color: '#FACC15', fontSize: 12, fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
-  popupApp: { color: '#F8FAFC', fontSize: 18, fontWeight: '700', marginBottom: 6 },
-  popupMeta: { color: '#94A3B8', fontSize: 13, marginBottom: 18 },
+  popupApp: { color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  popupMeta: { color: theme.muted, fontSize: 13, marginBottom: 18 },
   popupActions: { flexDirection: 'row', gap: 8 },
   popupActionDisabled: { opacity: 0.7 },
   popupApprove: {
@@ -798,16 +815,16 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1, minWidth: '45%',
-    backgroundColor: '#1E293B',
+    backgroundColor: theme.card,
     borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: theme.border,
   },
   statBlue:   { borderTopWidth: 3, borderTopColor: '#3D5AF1' },
   statGreen:  { borderTopWidth: 3, borderTopColor: '#22C55E' },
   statYellow: { borderTopWidth: 3, borderTopColor: '#EAB308' },
   statRed:    { borderTopWidth: 3, borderTopColor: '#EF4444' },
   statLabel: {
-    fontSize: 10, fontWeight: '700', color: '#94A3B8',
+    fontSize: 10, fontWeight: '700', color: theme.muted,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
   },
   statValue: { fontSize: 22, fontWeight: '800' },
@@ -815,9 +832,9 @@ const styles = StyleSheet.create({
   // ── Status panel ───────────────────────────────────────────────────────
   statusPanel: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: theme.card,
     borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: theme.border,
     marginBottom: 12,
   },
   statusIconWrap: {
@@ -828,16 +845,16 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   statusTitle: { color: '#4ADE80', fontSize: 14, fontWeight: '700', marginBottom: 3 },
-  statusSub:   { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
+  statusSub:   { color: theme.muted, fontSize: 12, lineHeight: 17 },
 
   // ── Integration Hub card ───────────────────────────────────────────────
   integrationCard: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#1E293B',
+    backgroundColor: theme.card,
     borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: theme.border,
     marginBottom: 16,
   },
-  integrationCardTitle: { color: '#F8FAFC', fontSize: 14, fontWeight: '700', marginBottom: 3 },
-  integrationCardSub:   { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
+  integrationCardTitle: { color: theme.text, fontSize: 14, fontWeight: '700', marginBottom: 3 },
+  integrationCardSub:   { color: theme.muted, fontSize: 12, lineHeight: 17 },
 });

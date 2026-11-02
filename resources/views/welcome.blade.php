@@ -198,8 +198,6 @@
                 <a href="#about">About</a>
                 <a href="#features">Features</a>
                 <a href="{{ route('integrations') }}">Integration Hub</a>
-                <a href="#app">App</a>
-                <a href="#faq">FAQ</a>
             </div>
 
             <div class="nav-right">
@@ -222,7 +220,7 @@
             <h1>Really Big Inspiration Text about this Website</h1>
             <p>A Short Description About the Really Big Inspiration Text about this Website above</p>
             <div class="hero-buttons">
-                <button class="btn-discover" id="discoverBtn">
+                <button type="button" class="btn-discover" id="discoverBtn">
                     Discover
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M12 5v14M5 12l7 7 7-7"/>
@@ -263,6 +261,10 @@
             splash.classList.add('fade-out');
             mainSite.classList.add('visible');
         }, 5000);
+
+        document.getElementById('discoverBtn').addEventListener('click', function () {
+            document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+        });
     </script>
 
 </body>

@@ -15,11 +15,13 @@ Route::prefix('mobile')->group(function () {
 });
 
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────
-Route::post('/integrations/login-event', [IntegrationController::class, 'publicLoginEvent']);
-Route::get('/login-events/{event}',      [IntegrationController::class, 'publicEventStatus'])
-    ->whereNumber('event');
-Route::get('/login-events/{event}/wait', [IntegrationController::class, 'publicEventLongPoll'])
-    ->whereNumber('event');
+Route::middleware('throttle:30,1')->group(function () {
+    Route::post('/integrations/login-event', [IntegrationController::class, 'publicLoginEvent']);
+    Route::get('/login-events/{event}',      [IntegrationController::class, 'publicEventStatus'])
+        ->whereNumber('event');
+    Route::get('/login-events/{event}/wait', [IntegrationController::class, 'publicEventLongPoll'])
+        ->whereNumber('event');
+});
 
 // ── Authenticated API routes (Sanctum token) ──────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {

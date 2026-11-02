@@ -1,16 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Image,
 } from 'react-native';
+import { useTheme } from '../src/theme/ThemeContext';
 
-const C = {
-  dark: '#0F172A', mid: '#1E293B', blue: '#3D5AF1',
-  border: 'rgba(255,255,255,0.08)', text: '#F8FAFC', muted: '#94A3B8',
-  danger: '#EF4444',
-};
-
-function Row({ icon, label, value, danger, onPress }) {
+function Row({ icon, label, value, danger, onPress, styles }) {
   return (
     <TouchableOpacity
       style={styles.row}
@@ -28,6 +23,8 @@ function Row({ icon, label, value, danger, onPress }) {
 }
 
 export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenIntegrations, onOpenApprovals }) {
+  const C = useTheme();
+  const styles = useMemo(() => createStyles(C), [C]);
   const isLoggedIn = !!user;
 
   return (
@@ -62,17 +59,17 @@ export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenInt
           {/* Account section */}
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
           <View style={styles.card}>
-            <Row icon="🔗" label="Integration Hub" value="Manage connected apps" onPress={onOpenIntegrations} />
+            <Row icon="🔗" label="Integration Hub" value="Manage connected apps" onPress={onOpenIntegrations} styles={styles} />
             <View style={styles.divider} />
-            <Row icon="🔔" label="Login Approvals" value="Approve / decline logins on this device" onPress={onOpenApprovals} />
+            <Row icon="🔔" label="Login Approvals" value="Approve / decline logins on this device" onPress={onOpenApprovals} styles={styles} />
           </View>
 
           {/* App section */}
           <Text style={styles.sectionLabel}>APP</Text>
           <View style={styles.card}>
-            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" />
+            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" styles={styles} />
             <View style={styles.divider} />
-            <Row icon="🌐" label="Backend" value="Laravel + Supabase" />
+            <Row icon="🌐" label="Backend" value="Laravel + Supabase" styles={styles} />
           </View>
 
           {/* Logout */}
@@ -98,9 +95,9 @@ export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenInt
           {/* App info even for guests */}
           <Text style={styles.sectionLabel}>APP</Text>
           <View style={styles.card}>
-            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" />
+            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" styles={styles} />
             <View style={styles.divider} />
-            <Row icon="🌐" label="Backend" value="Laravel + Supabase" />
+            <Row icon="🌐" label="Backend" value="Laravel + Supabase" styles={styles} />
           </View>
         </>
       )}
@@ -108,12 +105,13 @@ export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenInt
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.dark },
+const createStyles = (C) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
   content: { paddingBottom: 48 },
 
   header: {
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+    backgroundColor: C.surface,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
@@ -122,7 +120,7 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     margin: 20, padding: 20,
-    backgroundColor: C.mid, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
   },
   avatar: {
     width: 56, height: 56, borderRadius: 28,
@@ -145,7 +143,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1, marginHorizontal: 20, marginBottom: 8, marginTop: 20,
   },
   card: {
-    marginHorizontal: 20, backgroundColor: C.mid,
+    marginHorizontal: 20, backgroundColor: C.card,
     borderRadius: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden',
   },
   row: {
@@ -170,7 +168,7 @@ const styles = StyleSheet.create({
   // ── Guest ──
   guestCard: {
     margin: 20, padding: 32,
-    backgroundColor: C.mid, borderRadius: 20,
+    backgroundColor: C.card, borderRadius: 20,
     borderWidth: 1, borderColor: C.border,
     alignItems: 'center',
   },
