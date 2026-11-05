@@ -17,7 +17,7 @@ Route::prefix('mobile')->group(function () {
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────
 Route::middleware('throttle:30,1')->group(function () {
     Route::post('/integrations/login-event', [IntegrationController::class, 'publicLoginEvent']);
-    Route::get('/login-events/{event}',      [IntegrationController::class, 'publicEventStatus'])
+    Route::get('/login-events/{event}', [IntegrationController::class, 'publicEventStatus'])
         ->whereNumber('event');
     Route::get('/login-events/{event}/wait', [IntegrationController::class, 'publicEventLongPoll'])
         ->whereNumber('event');
@@ -28,12 +28,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
     Route::post('/mobile/logout', [MobileAuthController::class, 'logout']);
-    Route::get('/mobile/me',      [MobileAuthController::class, 'me']);
+    Route::get('/mobile/me', [MobileAuthController::class, 'me']);
 
     // Integrations CRUD
-    Route::get('/integrations',                    [IntegrationController::class, 'index']);
-    Route::post('/integrations',                   [IntegrationController::class, 'store']);
-    Route::delete('/integrations/{integration}',   [IntegrationController::class, 'destroy']);
+    Route::get('/integrations', [IntegrationController::class, 'index']);
+    Route::post('/integrations', [IntegrationController::class, 'store']);
+    Route::delete('/integrations/{integration}', [IntegrationController::class, 'destroy']);
     Route::patch('/integrations/{integration}/toggle', [IntegrationController::class, 'toggle']);
 
     // TOTP code for a specific integration
@@ -41,14 +41,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Login events (called by external app or simulator)
     Route::post('/integrations/{integration}/login-event', [IntegrationController::class, 'loginEvent']);
-    Route::patch('/login-events/{event}/respond',          [IntegrationController::class, 'respondToEvent']);
-    Route::patch('/login-events/{event}/archive',          [IntegrationController::class, 'archiveEvent']);
-    Route::delete('/login-events/{event}',                 [IntegrationController::class, 'destroyEvent']);
-    Route::get('/login-events',                            [IntegrationController::class, 'history']);
-    Route::get('/login-events/pending',                    [IntegrationController::class, 'pendingApprovals']);
+    Route::patch('/login-events/{event}/respond', [IntegrationController::class, 'respondToEvent']);
+    Route::patch('/login-events/{event}/archive', [IntegrationController::class, 'archiveEvent']);
+    Route::delete('/login-events/{event}', [IntegrationController::class, 'destroyEvent']);
+    Route::get('/login-events', [IntegrationController::class, 'history']);
+    Route::get('/login-events/pending', [IntegrationController::class, 'pendingApprovals']);
 
     // Devices (Expo push tokens)
-    Route::post('/devices',              [DeviceController::class, 'register']);
-    Route::get('/devices',               [DeviceController::class, 'index']);
-    Route::delete('/devices/{device}',   [DeviceController::class, 'destroy']);
+    Route::post('/devices', [DeviceController::class, 'register']);
+    Route::get('/devices', [DeviceController::class, 'index']);
+    Route::delete('/devices/{device}', [DeviceController::class, 'destroy']);
 });

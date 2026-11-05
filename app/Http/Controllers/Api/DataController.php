@@ -15,10 +15,10 @@ class DataController extends Controller
     {
         $user = $request->user();
 
-        $activeShields  = $user->integrations()->where('is_active', true)->count();
+        $activeShields = $user->integrations()->where('is_active', true)->count();
         $threatsBlocked = $user->loginEvents()->where('status', 'declined')->count();
-        $pendingAlerts  = $user->loginEvents()->where('status', 'pending')->count();
-        $recentEvents   = $user->loginEvents()
+        $pendingAlerts = $user->loginEvents()->where('status', 'pending')->count();
+        $recentEvents = $user->loginEvents()
             ->with('integration:id,name')
             ->where('is_archived', false)
             ->latest()
@@ -41,7 +41,7 @@ class DataController extends Controller
             ],
             'recent_activity' => $recentEvents->map(fn ($e) => [
                 'id' => $e->id,
-                'event' => ($e->integration?->name ?? 'Integration') . ' login ' . $e->status,
+                'event' => $e->integration->name.' login '.$e->status,
                 'time' => $e->created_at?->diffForHumans(),
                 'severity' => match ($e->status) {
                     'declined' => 'warning',

@@ -37,20 +37,23 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
         password,
         device_name: `${Platform.OS}_mobile_app`,
       });
-      if (res.data?.token) {
-        await setStoredToken(res.data.token, { expiresAt: res.data.expires_at });
-
-        // Clear fields BEFORE success callback
-        setEmail('');
-        setPassword('');
-        setError('');
-
-        // Propagate user data up — push token registration is handled
-        // centrally in App.jsx handleLoginSuccess via notifications.js
-        onLoginSuccess?.(res.data.user);
+      if (!res.data?.token) {
+        setError('Login response did not include an authentication token.');
+        return;
       }
+
+      await setStoredToken(res.data.token, { expiresAt: res.data.expires_at });
+
+      // Clear fields BEFORE success callback
+      setEmail('');
+      setPassword('');
+      setError('');
+
+      // Propagate user data up — push token registration is handled
+      // centrally in App.jsx handleLoginSuccess via notifications.js
+      onLoginSuccess?.(res.data.user);
     } catch (e) {
-      console.error('LoginModal Error:', e.response?.data || e.message);
+      console.warn('LoginModal Error:', e?.response?.data || e?.message);
 
       const status = e?.response?.status;
       let msg;

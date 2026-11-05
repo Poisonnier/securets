@@ -11,4 +11,3 @@ Artisan::command('inspire', function () {
 
 // Mark stale pending approval events as expired every 5 minutes.
 Schedule::command(ExpireLoginEvents::class)->everyFiveMinutes();
-

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateSettingsRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,8 +15,8 @@ class SettingsController extends Controller
      */
     public const DEFAULT_PREFERENCES = [
         'email_notifications' => true,
-        'mobile_push'         => true,
-        'theme'               => 'dark',
+        'mobile_push' => true,
+        'theme' => 'dark',
     ];
 
     /**
@@ -23,7 +24,7 @@ class SettingsController extends Controller
      */
     public function edit(Request $request): View
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         $preferences = array_merge(
@@ -35,9 +36,9 @@ class SettingsController extends Controller
         $integrationCount = $user->integrations()->count();
 
         return view('account.settings', [
-            'user'             => $user,
-            'preferences'      => $preferences,
-            'deviceCount'      => $deviceCount,
+            'user' => $user,
+            'preferences' => $preferences,
+            'deviceCount' => $deviceCount,
             'integrationCount' => $integrationCount,
         ]);
     }
@@ -47,14 +48,14 @@ class SettingsController extends Controller
      */
     public function update(UpdateSettingsRequest $request): RedirectResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = $request->user();
 
         $current = $user->preferences ?? self::DEFAULT_PREFERENCES;
         $updated = array_merge($current, [
             'email_notifications' => $request->boolean('email_notifications'),
-            'mobile_push'         => $request->boolean('mobile_push'),
-            'theme'               => $request->validated('theme'),
+            'mobile_push' => $request->boolean('mobile_push'),
+            'theme' => $request->validated('theme'),
         ]);
 
         $user->update(['preferences' => $updated]);

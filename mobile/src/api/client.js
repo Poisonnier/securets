@@ -8,8 +8,18 @@ import { Platform } from 'react-native';
 //   Android emulator:           http://10.0.2.2:8000/api
 //   Physical device (Expo Go):  http://192.168.x.x:8000/api
 //   Production:                 https://yourdomain.com/api
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://127.0.0.1:8000/api';
+const resolveBaseUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `http://${host}:8000/api`;
+    }
+  }
+  return envUrl || (Platform.OS === 'android' ? 'http://10.0.2.2:8000/api' : 'http://127.0.0.1:8000/api');
+};
+
+export const API_BASE_URL = resolveBaseUrl();
 
 export const AUTH_SESSION_MINUTES = Number.parseInt(
   process.env.EXPO_PUBLIC_AUTH_SESSION_MINUTES ?? '120',
