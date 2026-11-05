@@ -75,8 +75,8 @@ class MobileApiTest extends TestCase
             ->assertJson([
                 'message' => 'The provided credentials do not match our records.',
                 'errors' => [
-                    'email' => ['Incorrect email or password.']
-                ]
+                    'email' => ['Incorrect email or password.'],
+                ],
             ]);
     }
 

@@ -23,31 +23,33 @@
  */
 
 use App\Models\User;
+use Illuminate\Foundation\Http\Kernel;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1.  Middleware registration
 // ─────────────────────────────────────────────────────────────────────────────
 
 test('bootstrap registers PreventRequestForgery on the web middleware stack', function () {
-    $kernel    = app(\Illuminate\Foundation\Http\Kernel::class);
+    $kernel = app(Kernel::class);
     $webMiddleware = collect($kernel->getMiddlewareGroups()['web'] ?? []);
 
     // The web group must include the CSRF middleware (under either alias).
-    $hasCsrf = $webMiddleware->contains(fn ($m) =>
-        in_array($m, [
-            \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
-            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        ], true)
+    $hasCsrf = $webMiddleware->contains(fn ($m) => in_array($m, [
+        PreventRequestForgery::class,
+        VerifyCsrfToken::class,
+    ], true)
     );
 
     expect($hasCsrf)->toBeTrue('PreventRequestForgery must be in the web middleware group');
-})->skip(fn () => ! method_exists(app(\Illuminate\Foundation\Http\Kernel::class), 'getMiddlewareGroups'), 'Kernel::getMiddlewareGroups not available');
+})->skip(fn () => ! method_exists(app(Kernel::class), 'getMiddlewareGroups'), 'Kernel::getMiddlewareGroups not available');
 
 test('the CSRF middleware excludes api/* routes and only api/* routes', function () {
     // Read the bootstrap/app.php exclusion list via the configured middleware.
     // We instantiate the middleware and call its getExcludedPaths() helper.
-    $middleware = app(\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class);
-    $excluded   = $middleware->getExcludedPaths();
+    $middleware = app(PreventRequestForgery::class);
+    $excluded = $middleware->getExcludedPaths();
 
     // api/* must be excluded (mobile clients use Sanctum bearer tokens).
     expect($excluded)->toContain('api/*');
@@ -101,12 +103,12 @@ test('the integrations hub renders a csrf-token meta tag and uses X-CSRF-TOKEN i
 });
 
 test('the gate page renders a csrf-token meta tag and uses X-CSRF-TOKEN in AJAX', function () {
-    $user        = User::factory()->create();
+    $user = User::factory()->create();
     $integration = $user->integrations()->create([
-        'name'       => 'Target App',
-        'url'        => 'https://target.example/login',
+        'name' => 'Target App',
+        'url' => 'https://target.example/login',
         'secret_key' => 'TESTSECRETKEY1234',
-        'is_active'  => true,
+        'is_active' => true,
     ]);
 
     $response = $this->get("/i/{$integration->gate_token}")->assertOk();
@@ -156,7 +158,7 @@ test('the logout form in the profile menu renders a hidden _token field', functi
 test('unauthenticated POST to /web/integrations returns 401 or redirects to login', function () {
     $this->postJson('/web/integrations', [
         'name' => 'Evil App',
-        'url'  => 'https://evil.example/login',
+        'url' => 'https://evil.example/login',
     ])->assertUnauthorized();
 });
 
@@ -188,7 +190,7 @@ test('POST /api/mobile/login is CSRF-exempt and returns a validation error, not 
     // If CSRF were enforced here this would fail at the middleware level (419),
     // not reach validation.  A 422 confirms the request made it to the controller.
     $this->postJson('/api/mobile/login', [
-        'email'    => 'nobody@example.com',
+        'email' => 'nobody@example.com',
         'password' => 'wrongpassword',
     ])->assertStatus(422);
 });

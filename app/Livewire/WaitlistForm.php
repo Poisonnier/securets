@@ -3,18 +3,28 @@
 namespace App\Livewire;
 
 use App\Models\EarlyAccessSubscriber;
+use Illuminate\Contracts\View\View;
 use Livewire\Component;
 
 class WaitlistForm extends Component
 {
     public string $email = '';
+
     public string $role = 'developer';
+
     public string $teamSize = '1-10';
+
     public string $useCase = '';
+
     public bool $submitted = false;
+
     public int $queuePosition = 142;
+
     public string $referralCode = '';
 
+    /**
+     * @return array<string, list<string>>
+     */
     protected function rules(): array
     {
         return [
@@ -25,6 +35,7 @@ class WaitlistForm extends Component
         ];
     }
 
+    /** @var array<string, string> */
     protected $messages = [
         'email.required' => 'Please enter your work or personal email address.',
         'email.email' => 'Please provide a valid email format (e.g. name@company.com).',
@@ -44,7 +55,7 @@ class WaitlistForm extends Component
         ]);
 
         $this->queuePosition = rand(135, 189);
-        $this->referralCode = 'SEC-' . strtoupper(substr(md5($this->email), 0, 6));
+        $this->referralCode = 'SEC-'.strtoupper(substr(md5($this->email), 0, 6));
         $this->submitted = true;
     }
 
@@ -55,7 +66,7 @@ class WaitlistForm extends Component
         $this->submitted = false;
     }
 
-    public function render()
+    public function render(): View
     {
         return view('livewire.waitlist-form');
     }

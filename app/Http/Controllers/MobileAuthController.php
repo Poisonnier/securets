@@ -3,32 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class MobileAuthController extends Controller
 {
     /**
      * Mobile login – returns a Sanctum personal access token.
      */
-    public function login(Request $request)
+    public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email'       => 'required|email',
-            'password'    => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string',
             'device_name' => 'nullable|string',
         ]);
 
         $email = strtolower(trim($data['email']));
         $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
             return response()->json([
                 'message' => 'The provided credentials do not match our records.',
                 'errors' => [
-                    'email' => ['Incorrect email or password.']
-                ]
+                    'email' => ['Incorrect email or password.'],
+                ],
             ], 422);
         }
 
@@ -51,9 +51,9 @@ class MobileAuthController extends Controller
             'token' => $token,
             'expires_at' => $expiresAt?->toIso8601String(),
             'expires_in_minutes' => $expiresInMinutes,
-            'user'  => [
-                'id'    => $user->id,
-                'name'  => $user->name,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
                 'email' => $user->email,
                 'theme' => $user->preference('theme', SettingsController::DEFAULT_PREFERENCES['theme']),
             ],
@@ -63,20 +63,21 @@ class MobileAuthController extends Controller
     /**
      * Mobile logout – revokes the current token.
      */
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logged out']);
     }
 
     /**
      * Get current authenticated user info.
      */
-    public function me(Request $request)
+    public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'id'    => $request->user()->id,
-            'name'  => $request->user()->name,
+            'id' => $request->user()->id,
+            'name' => $request->user()->name,
             'email' => $request->user()->email,
             'theme' => $request->user()->preference('theme', SettingsController::DEFAULT_PREFERENCES['theme']),
         ]);

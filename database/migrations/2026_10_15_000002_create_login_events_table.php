@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('ip_address')->nullable();
             $table->string('device')->nullable();          // browser/OS string
             $table->enum('status', ['pending', 'approved', 'declined', 'auto'])
-                  ->default('pending');
+                ->default('pending');
             $table->boolean('is_first_login')->default(false);
             $table->string('credential_username')->nullable(); // saved on first login
             $table->timestamps();

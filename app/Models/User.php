@@ -20,7 +20,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
- * @property array|null $preferences
+ * @property array<string, mixed>|null $preferences
  * @property string|null $remember_token
  * @property Carbon|null $archived_at
  * @property Carbon|null $created_at
@@ -31,7 +31,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -76,18 +76,21 @@ class User extends Authenticatable
             : $initials;
     }
 
+    /** @return HasMany<Integration, $this> */
     public function integrations(): HasMany
     {
-        return $this->hasMany(\App\Models\Integration::class);
+        return $this->hasMany(Integration::class);
     }
 
+    /** @return HasMany<LoginEvent, $this> */
     public function loginEvents(): HasMany
     {
-        return $this->hasMany(\App\Models\LoginEvent::class);
+        return $this->hasMany(LoginEvent::class);
     }
 
+    /** @return HasMany<Device, $this> */
     public function devices(): HasMany
     {
-        return $this->hasMany(\App\Models\Device::class);
+        return $this->hasMany(Device::class);
     }
 }
