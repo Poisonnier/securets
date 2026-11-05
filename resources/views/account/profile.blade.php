@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Profile Details – SecureThreatShield</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -305,7 +306,10 @@
                 @csrf
                 <div class="form-group">
                     <label for="archive_password">Current password</label>
-                    <input type="password" id="archive_password" name="password" class="form-control" required placeholder="Enter password to confirm">
+                    <input type="password" id="archive_password" name="password" class="form-control @if($errors->archive->has('password')) is-invalid @endif" required placeholder="Enter password to confirm">
+                    @if ($errors->archive->has('password'))
+                        <span class="field-error">{{ $errors->archive->first('password') }}</span>
+                    @endif
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-cancel" id="closeArchiveModalBtn">Cancel</button>
@@ -342,6 +346,12 @@
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
             });
+
+            @if ($errors->archive->any())
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+                passwordInput.focus();
+            @endif
         })();
     </script>
 </body>

@@ -13,6 +13,10 @@ class Integration extends Model
         'user_id', 'name', 'url', 'secret_key', 'gate_token', 'is_active', 'favicon_url',
     ];
 
+    protected $hidden = [
+        'secret_key',
+    ];
+
     protected $casts = [
         'is_active' => 'boolean',
     ];

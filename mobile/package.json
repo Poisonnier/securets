@@ -3,24 +3,28 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "ip": "node scripts/detect-lan-ip.js",
+    "start": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' expo start",
+    "android": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' expo start --android",
+    "ios": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' expo start --ios",
+    "web": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' expo start --web"
   },
   "dependencies": {
-    "expo": "~51.0.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
     "axios": "^1.7.9",
-    "expo-notifications": "~0.28.0",
-    "expo-secure-store": "~13.0.2",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native": "0.74.5",
-    "react-native-web": "~0.19.10",
-    "react-native-svg": "15.2.0",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "expo": "^53.0.11",
+    "expo-notifications": "~58.1.8",
+    "expo-secure-store": "~58.0.2",
+    "pusher-js": "^8.6.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-svg": "15.16.0",
+    "react-native-web": "~0.21.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "cross-env": "^10.1.0"
   }
 }

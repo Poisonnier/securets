@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard – SecureThreatShield</title>
     <meta name="description" content="SecureThreatShield Dashboard – threat protection overview.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -111,11 +112,11 @@
     <div class="stats-grid">
         <div class="stat-card blue">
             <div class="stat-label">Protection Status</div>
-            <div class="stat-value">Active</div>
+            <div class="stat-value">{{ $protectionStatus }}</div>
         </div>
         <div class="stat-card green">
             <div class="stat-label">Threats Blocked</div>
-            <div class="stat-value">0</div>
+            <div class="stat-value">{{ $threatsBlocked }}</div>
         </div>
         <div class="stat-card yellow">
             <div class="stat-label">Auth Latency</div>
@@ -123,21 +124,26 @@
         </div>
         <div class="stat-card red">
             <div class="stat-label">Alerts</div>
-            <div class="stat-value">0</div>
+            <div class="stat-value">{{ $alertsCount }}</div>
         </div>
     </div>
 
     <div class="status-panel">
         <div class="status-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5"
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{ $pendingAlertsCount > 0 ? '#EAB308' : '#22C55E' }}" stroke-width="2.5"
                  stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <polyline points="9 12 11 14 15 10"/>
             </svg>
         </div>
         <div class="status-text">
-            <h2 style="color:#4ADE80">All Systems Operational</h2>
-            <p>ThreatShield is actively monitoring your account. No threats detected.</p>
+            @if ($pendingAlertsCount > 0)
+                <h2 style="color:#FACC15">{{ $pendingAlertsCount }} Pending Approval{{ $pendingAlertsCount === 1 ? '' : 's' }}</h2>
+                <p>Review waiting login attempt{{ $pendingAlertsCount === 1 ? '' : 's' }} on your SecureTS mobile app.</p>
+            @else
+                <h2 style="color:#4ADE80">All Systems Operational</h2>
+                <p>ThreatShield is actively monitoring your account. No pending threats detected.</p>
+            @endif
         </div>
     </div>
 

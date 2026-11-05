@@ -1,18 +1,15 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl,
     ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity,
     View,
 } from 'react-native';
 import { integrationApi } from '../src/api/integrations';
-
-const COLORS = {
-    dark: '#0F172A', mid: '#1E293B', blue: '#3D5AF1', blueLight: '#818CF8',
-    border: 'rgba(255,255,255,0.08)', text: '#F8FAFC', muted: '#94A3B8',
-    danger: '#EF4444', success: '#22C55E', warning: '#EAB308',
-};
+import { useTheme } from '../src/theme/ThemeContext';
 
 export default function IntegrationScreen() {
+    const COLORS = useTheme();
+    const styles = useMemo(() => createStyles(COLORS), [COLORS]);
     const [apps, setApps]             = useState([]);
     const [loading, setLoading]       = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +31,12 @@ export default function IntegrationScreen() {
         }
     }, []);
 
-    useEffect(() => { fetchApps(); }, [fetchApps]);
+    useEffect(() => {
+        fetchApps();
+        // Poll for new integrations (sync with web side)
+        const interval = setInterval(fetchApps, 5000);
+        return () => clearInterval(interval);
+    }, [fetchApps]);
 
     // Poll TOTP codes every second
     useEffect(() => {
@@ -106,7 +108,7 @@ export default function IntegrationScreen() {
                     <Image
                         source={{ uri: app.favicon_url || `https://www.google.com/s2/favicons?domain=${app.url}&sz=64` }}
                         style={styles.faviconImg}
-                        defaultSource={require('./fallback-icon.png')}
+                        defaultSource={require('./fallback-icon.jpg')}
                     />
                 </View>
                 <View style={styles.appInfo}>
@@ -167,9 +169,17 @@ export default function IntegrationScreen() {
                     <Text style={styles.headerTitle}>My Apps</Text>
                     <Text style={styles.headerSub}>{apps.length} integration{apps.length !== 1 ? 's' : ''}</Text>
                 </View>
-                <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-                    <Text style={styles.addBtnText}>+ Add App</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                        style={[styles.addBtn, { backgroundColor: COLORS.subtle }]}
+                        onPress={() => { setRefreshing(true); fetchApps(); }}
+                    >
+                        <Text style={[styles.addBtnText, { color: COLORS.text }]}>Refresh</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                        <Text style={styles.addBtnText}>+ Add App</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {loading ? (
@@ -234,11 +244,12 @@ export default function IntegrationScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.dark },
+const createStyles = (COLORS) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: COLORS.bg },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
+        backgroundColor: COLORS.surface,
         borderBottomWidth: 1, borderBottomColor: COLORS.border,
     },
     headerTitle: { fontSize: 22, fontWeight: '800', color: COLORS.text },
@@ -254,14 +265,14 @@ const styles = StyleSheet.create({
     emptyText: { color: COLORS.muted, fontSize: 14, textAlign: 'center' },
 
     card: {
-        backgroundColor: COLORS.mid, borderRadius: 16,
+        backgroundColor: COLORS.card, borderRadius: 16,
         borderWidth: 1, borderColor: COLORS.border,
         padding: 16, marginBottom: 14,
     },
     cardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     favicon: {
         width: 44, height: 44, borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: COLORS.subtle,
         alignItems: 'center', justifyContent: 'center', marginRight: 12,
     },
     faviconImg: { width: 30, height: 30 },
@@ -276,7 +287,7 @@ const styles = StyleSheet.create({
         borderRadius: 10, padding: 12, marginBottom: 12,
     },
     totpLabel:     { color: COLORS.blueLight, fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-    totpCode:      { color: '#A5B4FC', fontSize: 26, fontWeight: '700', letterSpacing: 6, fontVariant: ['tabular-nums'] },
+    totpCode:      { color: COLORS.blueLight, fontSize: 26, fontWeight: '700', letterSpacing: 6, fontVariant: ['tabular-nums'] },
     totpTimer:     { alignItems: 'flex-end' },
     totpTimerText: { color: COLORS.muted, fontSize: 12, marginBottom: 4 },
     totpBarBg:     { width: 48, height: 3, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2 },
@@ -294,21 +305,21 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: '#1E293B', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        backgroundColor: COLORS.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
         padding: 28, paddingBottom: 48,
     },
     modalTitle: { color: COLORS.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
     modalSub:   { color: COLORS.muted, fontSize: 13, marginBottom: 24 },
     fieldLabel: { color: COLORS.muted, fontSize: 12, fontWeight: '500', marginBottom: 6 },
     fieldInput: {
-        backgroundColor: 'rgba(255,255,255,0.07)',
-        borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: COLORS.inputBg,
+        borderWidth: 1.5, borderColor: COLORS.border,
         borderRadius: 8, padding: 12, fontSize: 14, color: COLORS.text,
         marginBottom: 16,
     },
     modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
     btnPrimary: { flex: 1, backgroundColor: COLORS.blue, borderRadius: 10, padding: 14, alignItems: 'center' },
     btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-    btnCancel: { flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 10, padding: 14, alignItems: 'center' },
+    btnCancel: { flex: 1, backgroundColor: COLORS.subtle, borderRadius: 10, padding: 14, alignItems: 'center' },
     btnCancelText: { color: COLORS.muted, fontWeight: '600', fontSize: 14 },
 });

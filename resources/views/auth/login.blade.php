@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login – SecureThreatShield</title>
     <meta name="description" content="Log in to your SecureThreatShield account.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,6 +143,12 @@
             transition: color 0.2s;
         }
         .forgot-link:hover { color: #fff; text-decoration: underline; }
+        .session-note {
+            font-size: 12px;
+            color: rgba(255,255,255,0.72);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
 
         /* ── Buttons ── */
         .btn-row { display: flex; gap: 12px; }
@@ -306,10 +313,11 @@
                 @enderror
             </div>
 
-            <!-- Forgot password -->
-            <div class="forgot-row">
-                <a href="#" class="forgot-link">Forgot Password?</a>
-            </div>
+            {{-- Forgot password link removed: no password-reset route exists yet. --}}
+
+            <p class="session-note">
+                For security, this account stays signed in for up to {{ config('session.lifetime') }} minutes after the browser closes.
+            </p>
 
             <!-- Buttons -->
             <div class="btn-row">

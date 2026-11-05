@@ -302,7 +302,8 @@
                         </div>
                         <label class="toggle">
                             <input type="checkbox" {{ $app->is_active ? 'checked' : '' }}
-                                   onchange="toggleApp({{ $app->id }}, this)">
+                                   data-app-id="{{ $app->id }}"
+                                   onchange="toggleApp(this)">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -320,13 +321,19 @@
                     </div>
 
                     <div class="app-card-actions">
-                        <button class="btn-sm info" onclick="copyText('{{ $app->gateUrl() }}', 'Login page link copied!')">
+                        <button class="btn-sm info"
+                                data-copy-value="{{ $app->gateUrl() }}"
+                                data-copy-msg="Login page link copied!"
+                                onclick="copyFromButton(this)">
                             Copy Login Link
                         </button>
-                        <button class="btn-sm info" onclick="copyText('{{ $app->secret_key }}', 'Secret key copied!')">
+                        <button class="btn-sm info"
+                                data-copy-value="{{ $app->secret_key }}"
+                                data-copy-msg="Secret key copied!"
+                                onclick="copyFromButton(this)">
                             Copy Secret
                         </button>
-                        <button class="btn-sm danger" onclick="removeApp({{ $app->id }})">
+                        <button class="btn-sm danger" data-app-id="{{ $app->id }}" onclick="removeApp(this)">
                             Remove
                         </button>
                     </div>
@@ -443,7 +450,8 @@ async function addApp() {
     }
 }
 
-async function removeApp(id) {
+async function removeApp(button) {
+    const id = button.dataset.appId;
     if (!confirm('Remove this integration?')) return;
     setFlash('loading', 'Removing integration…');
     try {
@@ -460,7 +468,8 @@ async function removeApp(id) {
     }
 }
 
-async function toggleApp(id, checkbox) {
+async function toggleApp(checkbox) {
+    const id = checkbox.dataset.appId;
     const previous = checkbox.checked;
     try {
         const res = await fetch(`/web/integrations/${id}/toggle`, {
@@ -477,6 +486,19 @@ async function toggleApp(id, checkbox) {
 
 function copyText(value, message) {
     navigator.clipboard.writeText(value).then(() => setFlash('success', message)).catch(() => setFlash('error', 'Could not copy.'));
+}
+
+function copyFromButton(button) {
+    copyText(button.dataset.copyValue ?? '', button.dataset.copyMsg ?? 'Copied!');
+}
+
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 // ── TOTP Timer ───────────────────────────────────────────────────────────────
@@ -506,6 +528,7 @@ function startTotpPolling() {
         loadTotpForApp(id);
     });
     setInterval(() => {
+        const cards = document.querySelectorAll('[id^="totp-"]');
         cards.forEach(el => {
             const id = el.id.replace('totp-', '');
             loadTotpForApp(id);
@@ -513,30 +536,113 @@ function startTotpPolling() {
     }, 1000);
 }
 
+// Poll for integration changes (sync with mobile)
+let lastIntegrationCount = -1;
+function startIntegrationSync() {
+    setInterval(async () => {
+        try {
+            // Check for notification changes
+            const historyRes = await fetch('/web/login-events', { headers: { 'Accept': 'application/json' } });
+            if (historyRes.ok) {
+                if (document.getElementById('tab-history').classList.contains('active')) {
+                    loadHistory();
+                }
+            }
+
+            // Check for new integrations
+            const integrationsRes = await fetch('/web/integrations-data', { headers: { 'Accept': 'application/json' } });
+            if (integrationsRes.ok) {
+                const data = await integrationsRes.json();
+                if (lastIntegrationCount !== -1 && data.length !== lastIntegrationCount) {
+                    window.location.reload(); // Simplest way to sync new apps for now
+                }
+                lastIntegrationCount = data.length;
+            }
+        } catch (_) {}
+    }, 5000);
+}
+
 // ── Load Login History ───────────────────────────────────────────────────────
 async function loadHistory() {
     const tbody = document.getElementById('historyBody');
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:40px">Loading login history…</td></tr>';
+    if (!tbody) return;
+    
     try {
         const res  = await fetch('/web/login-events', {
             headers: { 'Accept': 'application/json' },
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
+        
         if (!data.length) {
             tbody.innerHTML = '<tr><td colspan="4" style="color:var(--text-muted);text-align:center;padding:40px">No login history yet for this account.</td></tr>';
             return;
         }
-        tbody.innerHTML = data.map(e => `
-            <tr>
-                <td><strong>${e.integration?.name ?? '–'}</strong></td>
-                <td style="color:var(--text-muted)">${e.device ?? ''} ${e.ip_address ? '· ' + e.ip_address : ''}</td>
-                <td><span class="badge ${e.status}">${e.status}</span></td>
-                <td style="color:var(--text-muted)">${new Date(e.created_at).toLocaleString()}</td>
+
+        const validStatuses = ['pending', 'approved', 'declined', 'auto', 'expired'];
+        const rows = data.map(e => {
+            const id = Number(e.id) || 0;
+            const status = validStatuses.includes(e.status) ? e.status : 'auto';
+            const appName = escapeHtml(e.integration?.name ?? '–');
+            const device = escapeHtml(e.device ?? '');
+            const ip = e.ip_address ? '· ' + escapeHtml(e.ip_address) : '';
+            const createdAt = escapeHtml(new Date(e.created_at).toLocaleString());
+
+            return `
+            <tr id="event-${id}">
+                <td><strong>${appName}</strong></td>
+                <td style="color:var(--text-muted)">${device} ${ip}</td>
+                <td><span class="badge ${status}">${status}</span></td>
+                <td style="color:var(--text-muted)">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                        <span>${createdAt}</span>
+                        <div style="display:flex;gap:8px">
+                            <button onclick="archiveEvent(${id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Archive">📦</button>
+                            <button onclick="deleteEvent(${id})" style="background:none;border:none;cursor:pointer;font-size:14px" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
+        
+        if (tbody.innerHTML !== rows) {
+            tbody.innerHTML = rows;
+        }
     } catch (_) {
         tbody.innerHTML = '<tr><td colspan="4" style="color:#F87171;text-align:center;padding:40px">Could not load login history.</td></tr>';
+    }
+}
+
+async function archiveEvent(id) {
+    if (!confirm('Archive this notification?')) return;
+    try {
+        const res = await fetch(`/web/login-events/${id}/archive`, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        if (res.ok) {
+            document.getElementById('event-' + id)?.remove();
+            loadHistory();
+        }
+    } catch (_) {
+        setFlash('error', 'Could not archive.');
+    }
+}
+
+async function deleteEvent(id) {
+    if (!confirm('Permanently delete this notification?')) return;
+    try {
+        const res = await fetch(`/web/login-events/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        if (res.ok) {
+            document.getElementById('event-' + id)?.remove();
+            loadHistory();
+        }
+    } catch (_) {
+        setFlash('error', 'Could not delete.');
     }
 }
 
@@ -550,6 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (_) {}
     }
     startTotpPolling();
+    startIntegrationSync();
     document.getElementById('addModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });

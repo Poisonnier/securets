@@ -21,9 +21,12 @@ Route::post('/register',[AuthController::class, 'register']);
 Route::post('/logout',  [AuthController::class, 'logout'])->name('logout');
 
 // Public login gate for a linked app (uses gate_token, not the TOTP secret)
-Route::get('/i/{integration:gate_token}', [IntegrationController::class, 'gateShow'])->name('gate.show');
-Route::post('/i/{integration:gate_token}', [IntegrationController::class, 'gateAttempt'])->name('gate.attempt');
-Route::get('/i/{integration:gate_token}/events/{event}', [IntegrationController::class, 'gateEventStatus'])->name('gate.event');
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/i/{integration:gate_token}',                     [IntegrationController::class, 'gateShow'])->name('gate.show');
+    Route::post('/i/{integration:gate_token}',                    [IntegrationController::class, 'gateAttempt'])->name('gate.attempt');
+    Route::get('/i/{integration:gate_token}/events/{event}',      [IntegrationController::class, 'gateEventStatus'])->name('gate.event');
+    Route::get('/i/{integration:gate_token}/events/{event}/wait', [IntegrationController::class, 'gateLongPoll'])->name('gate.event.wait');
+});
 
 // ── Protected routes ──────────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
@@ -42,6 +45,7 @@ Route::middleware('auth')->group(function () {
     // ── Web-only JSON endpoints (session-authenticated, used by integrations.blade.php) ──
     Route::prefix('web')->group(function () {
         // Integrations CRUD
+        Route::get('/integrations-data',                       [IntegrationController::class, 'integrationsData']);
         Route::post('/integrations',                           [IntegrationController::class, 'store']);
         Route::delete('/integrations/{integration}',           [IntegrationController::class, 'destroy']);
         Route::patch('/integrations/{integration}/toggle',     [IntegrationController::class, 'toggle']);
@@ -49,6 +53,8 @@ Route::middleware('auth')->group(function () {
 
         // Read-only history on web. Approve / decline stays on the mobile app.
         Route::get('/login-events',                            [IntegrationController::class, 'history']);
+        Route::patch('/login-events/{event}/archive',          [IntegrationController::class, 'archiveEvent']);
+        Route::delete('/login-events/{event}',                 [IntegrationController::class, 'destroyEvent']);
     });
 });
 

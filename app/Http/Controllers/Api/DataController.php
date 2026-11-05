@@ -15,25 +15,40 @@ class DataController extends Controller
     {
         $user = $request->user();
 
+        $activeShields  = $user->integrations()->where('is_active', true)->count();
+        $threatsBlocked = $user->loginEvents()->where('status', 'declined')->count();
+        $pendingAlerts  = $user->loginEvents()->where('status', 'pending')->count();
+        $recentEvents   = $user->loginEvents()
+            ->with('integration:id,name')
+            ->where('is_archived', false)
+            ->latest()
+            ->take(5)
+            ->get();
+
         return response()->json([
-            'status' => 'active',
+            'status' => $activeShields > 0 ? 'active' : 'standby',
             'timestamp' => now()->toIso8601String(),
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
             ],
             'metrics' => [
-                'threats_blocked' => 1428,
-                'active_shields' => 4,
-                'network_security' => '99.8%',
-                'system_health' => 'Optimal',
-                'threat_level' => 'LOW',
+                'threats_blocked' => $threatsBlocked,
+                'active_shields' => $activeShields,
+                'pending_alerts' => $pendingAlerts,
+                'system_health' => $pendingAlerts > 0 ? 'Attention Required' : 'Optimal',
+                'threat_level' => $pendingAlerts > 0 ? 'ELEVATED' : 'LOW',
             ],
-            'recent_activity' => [
-                ['id' => 1, 'event' => 'Firewall Rule Synchronized', 'time' => '10 mins ago', 'severity' => 'info'],
-                ['id' => 2, 'event' => 'Unauthorized IP Blocked', 'time' => '25 mins ago', 'severity' => 'warning'],
-                ['id' => 3, 'event' => 'Threat Intelligence DB Updated', 'time' => '1 hour ago', 'severity' => 'success'],
-            ],
+            'recent_activity' => $recentEvents->map(fn ($e) => [
+                'id' => $e->id,
+                'event' => ($e->integration?->name ?? 'Integration') . ' login ' . $e->status,
+                'time' => $e->created_at?->diffForHumans(),
+                'severity' => match ($e->status) {
+                    'declined' => 'warning',
+                    'approved', 'auto' => 'success',
+                    default => 'info',
+                },
+            ])->values(),
         ]);
     }
 }

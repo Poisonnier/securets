@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Register – SecureThreatShield</title>
     <meta name="description" content="Create a new SecureThreatShield account.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -223,7 +224,7 @@
             <img src="{{ asset('images/securets-logo.png') }}" alt="SecureThreatShield Logo">
         </div>
 
-        <h1 class="page-title">Please Log in to your account.</h1>
+        <h1 class="page-title">Create your account.</h1>
 
         <!-- Register form -->
         <form method="POST" action="{{ route('register') }}">
