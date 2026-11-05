@@ -15,12 +15,13 @@ class MobileAuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required|string',
+            'email'       => 'required|email',
+            'password'    => 'required|string',
+            'device_name' => 'nullable|string',
         ]);
 
         $email = strtolower(trim($data['email']));
-        $user = User::where('email', $email)->first();
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json([
@@ -29,6 +30,10 @@ class MobileAuthController extends Controller
                     'email' => ['Incorrect email or password.']
                 ]
             ], 422);
+        }
+
+        if ($user->isArchived()) {
+            $user->update(['archived_at' => null]);
         }
 
         // Revoke old tokens with same device name if provided
