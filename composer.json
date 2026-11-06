@@ -9,16 +9,12 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^8.3",
-        "bacon/bacon-qr-code": "^3.1",
-        "laravel/framework": "^13.17",
-        "laravel/reverb": "^1.12",
         "laravel/sanctum": "^4.0",
+        "php": "^8.3",
+        "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
         "livewire/blaze": "^1.0",
-        "livewire/livewire": "^4.1",
-        "pragmarx/google2fa": "^8.0",
-        "pragmarx/google2fa-laravel": "^3.0"
+        "livewire/livewire": "^4.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -70,7 +66,7 @@
             "@test"
         ],
         "types:check": [
-            "phpstan analyse"
+            "phpstan analyse --memory-limit=512M"
         ],
         "test": [
             "@php artisan config:clear --ansi",
@@ -110,6 +106,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.4.1"
         }
     },
     "minimum-stability": "stable",

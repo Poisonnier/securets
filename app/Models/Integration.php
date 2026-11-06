@@ -21,11 +21,13 @@ class Integration extends Model
         'is_active' => 'boolean',
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<LoginEvent, $this> */
     public function loginEvents(): HasMany
     {
         return $this->hasMany(LoginEvent::class);
@@ -55,8 +57,11 @@ class Integration extends Model
     /** Favicon URL derived from the integration URL (Google favicon service) */
     public function getFaviconAttribute(): string
     {
-        if ($this->favicon_url) return $this->favicon_url;
+        if ($this->favicon_url) {
+            return $this->favicon_url;
+        }
         $host = parse_url($this->url, PHP_URL_HOST) ?? $this->url;
+
         return "https://www.google.com/s2/favicons?domain={$host}&sz=64";
     }
 }

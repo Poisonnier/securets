@@ -31,7 +31,7 @@ class LoginAttemptBroadcast implements ShouldBroadcastNow
      */
     public function broadcastOn(): Channel
     {
-        return new PrivateChannel('user.' . $this->loginEvent->user_id);
+        return new PrivateChannel('user.'.$this->loginEvent->user_id);
     }
 
     /**
@@ -44,19 +44,21 @@ class LoginAttemptBroadcast implements ShouldBroadcastNow
 
     /**
      * Payload delivered to the mobile client.
+     *
+     * @return array<string, mixed>
      */
     public function broadcastWith(): array
     {
         return [
-            'id'               => $this->loginEvent->id,
-            'event_id'         => $this->loginEvent->id,
-            'status'           => $this->loginEvent->status,
-            'ip_address'       => $this->loginEvent->ip_address,
-            'device'           => $this->loginEvent->device,
-            'created_at'       => $this->loginEvent->created_at->toISOString(),
-            'integration'      => [
-                'id'          => $this->integration->id,
-                'name'        => $this->integration->name,
+            'id' => $this->loginEvent->id,
+            'event_id' => $this->loginEvent->id,
+            'status' => $this->loginEvent->status,
+            'ip_address' => $this->loginEvent->ip_address,
+            'device' => $this->loginEvent->device,
+            'created_at' => $this->loginEvent->created_at->toISOString(),
+            'integration' => [
+                'id' => $this->integration->id,
+                'name' => $this->integration->name,
                 'favicon_url' => $this->integration->favicon_url ?? $this->integration->favicon,
             ],
         ];

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,14 +19,14 @@ class UpdateSettingsRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
             'email_notifications' => ['nullable', 'boolean'],
-            'mobile_push'         => ['nullable', 'boolean'],
-            'theme'               => ['required', 'string', Rule::in(['dark', 'light', 'system'])],
+            'mobile_push' => ['nullable', 'boolean'],
+            'theme' => ['required', 'string', Rule::in(['dark', 'light', 'system'])],
         ];
     }
 }

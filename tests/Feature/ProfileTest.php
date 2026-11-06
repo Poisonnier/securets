@@ -11,7 +11,7 @@ test('guests are redirected to login when trying to view profile', function () {
 
 test('profile page is displayed for authenticated user', function () {
     $user = User::factory()->create([
-        'name'  => 'John Doe',
+        'name' => 'John Doe',
         'email' => 'john@example.com',
     ]);
 
@@ -25,13 +25,13 @@ test('profile page is displayed for authenticated user', function () {
 
 test('profile information can be updated', function () {
     $user = User::factory()->create([
-        'name'  => 'Original Name',
+        'name' => 'Original Name',
         'email' => 'original@example.com',
     ]);
 
     $response = $this->actingAs($user)
         ->patch(route('profile.update'), [
-            'name'  => 'Updated Name',
+            'name' => 'Updated Name',
             'email' => 'updated@example.com',
         ]);
 
@@ -54,7 +54,7 @@ test('email must be unique when updating profile', function () {
 
     $response = $this->actingAs($user)
         ->patch(route('profile.update'), [
-            'name'  => 'Current User',
+            'name' => 'Current User',
             'email' => 'existing@example.com',
         ]);
 
@@ -64,13 +64,13 @@ test('email must be unique when updating profile', function () {
 
 test('user can keep same email when updating profile name', function () {
     $user = User::factory()->create([
-        'name'  => 'Original Name',
+        'name' => 'Original Name',
         'email' => 'same@example.com',
     ]);
 
     $response = $this->actingAs($user)
         ->patch(route('profile.update'), [
-            'name'  => 'New Name Only',
+            'name' => 'New Name Only',
             'email' => 'same@example.com',
         ]);
 
@@ -86,8 +86,8 @@ test('user can update password with valid current password', function () {
 
     $response = $this->actingAs($user)
         ->put(route('profile.password'), [
-            'current_password'      => 'old-password-123',
-            'password'              => 'new-secure-password-456',
+            'current_password' => 'old-password-123',
+            'password' => 'new-secure-password-456',
             'password_confirmation' => 'new-secure-password-456',
         ]);
 
@@ -104,8 +104,8 @@ test('password update fails when current password is wrong', function () {
 
     $response = $this->actingAs($user)
         ->put(route('profile.password'), [
-            'current_password'      => 'incorrect-password',
-            'password'              => 'new-secure-password-456',
+            'current_password' => 'incorrect-password',
+            'password' => 'new-secure-password-456',
             'password_confirmation' => 'new-secure-password-456',
         ]);
 
@@ -132,15 +132,15 @@ test('user can archive account and is logged out', function () {
 
 test('archived user account is automatically reactivated upon login', function () {
     $user = User::factory()->create([
-        'email'       => 'archived@example.com',
-        'password'    => Hash::make('password-123'),
+        'email' => 'archived@example.com',
+        'password' => Hash::make('password-123'),
         'archived_at' => now()->subDays(5),
     ]);
 
     expect($user->isArchived())->toBeTrue();
 
     $response = $this->post('/login', [
-        'email'    => 'archived@example.com',
+        'email' => 'archived@example.com',
         'password' => 'password-123',
     ]);
 

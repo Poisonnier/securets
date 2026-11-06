@@ -13,25 +13,25 @@ test('settings page is displayed for authenticated user with stats', function ()
     $user = User::factory()->create([
         'preferences' => [
             'email_notifications' => true,
-            'mobile_push'         => false,
-            'theme'               => 'dark',
+            'mobile_push' => false,
+            'theme' => 'dark',
         ],
     ]);
 
     Device::create([
-        'user_id'          => $user->id,
-        'device_name'      => 'Test iPhone',
-        'expo_push_token'  => 'ExponentPushToken[xyz]',
-        'last_seen_at'     => now(),
+        'user_id' => $user->id,
+        'device_name' => 'Test iPhone',
+        'expo_push_token' => 'ExponentPushToken[xyz]',
+        'last_seen_at' => now(),
     ]);
 
     Integration::create([
-        'user_id'     => $user->id,
-        'name'        => 'Test App',
-        'url'         => 'https://example.com',
-        'secret_key'  => 'secret_12345',
-        'gate_token'  => 'token_12345',
-        'is_active'   => true,
+        'user_id' => $user->id,
+        'name' => 'Test App',
+        'url' => 'https://example.com',
+        'secret_key' => 'secret_12345',
+        'gate_token' => 'token_12345',
+        'is_active' => true,
     ]);
 
     $this->actingAs($user)
@@ -49,8 +49,8 @@ test('user can update settings preferences', function () {
     $response = $this->actingAs($user)
         ->patch(route('settings.update'), [
             'email_notifications' => '1',
-            'mobile_push'         => '0',
-            'theme'               => 'light',
+            'mobile_push' => '0',
+            'theme' => 'light',
         ]);
 
     $response->assertSessionHas('status')

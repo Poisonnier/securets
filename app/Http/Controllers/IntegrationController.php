@@ -6,15 +6,17 @@ use App\Events\LoginAttemptBroadcast;
 use App\Models\Device;
 use App\Models\Integration;
 use App\Models\LoginEvent;
+use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use PragmaRX\Google2FA\Google2FA;
 
 class IntegrationController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse|View
     {
         $integrations = Integration::where('user_id', $request->user()->id)
             ->withCount('loginEvents')
@@ -28,7 +30,7 @@ class IntegrationController extends Controller
         return view('integrations', compact('integrations'));
     }
 
-    public function webIndex(Request $request)
+    public function webIndex(Request $request): View
     {
         $integrations = Integration::where('user_id', $request->user()->id)
             ->withCount('loginEvents')
@@ -38,21 +40,21 @@ class IntegrationController extends Controller
         return view('integrations', compact('integrations'));
     }
 
-    public function integrationsData(Request $request)
+    public function integrationsData(Request $request): JsonResponse
     {
         return response()->json(
             Integration::where('user_id', $request->user()->id)->get()
         );
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'url' => 'required|url:http,https|max:255',
         ]);
 
-        $g2fa = new Google2FA();
+        $g2fa = new Google2FA;
         $host = parse_url($data['url'], PHP_URL_HOST) ?? $data['url'];
 
         $integration = $request->user()->integrations()->create([
@@ -65,7 +67,7 @@ class IntegrationController extends Controller
         return response()->json($this->formatIntegration($integration), 201);
     }
 
-    public function destroy(Request $request, Integration $integration)
+    public function destroy(Request $request, Integration $integration): JsonResponse
     {
         $this->authorizeOwner($request->user(), $integration);
         $integration->delete();
@@ -73,7 +75,7 @@ class IntegrationController extends Controller
         return response()->json(['message' => 'Deleted']);
     }
 
-    public function toggle(Request $request, Integration $integration)
+    public function toggle(Request $request, Integration $integration): JsonResponse
     {
         $this->authorizeOwner($request->user(), $integration);
         $integration->update(['is_active' => ! $integration->is_active]);
@@ -82,7 +84,7 @@ class IntegrationController extends Controller
     }
 
     /** Sanctum: owner-triggered login event (dev / older clients). */
-    public function loginEvent(Request $request, Integration $integration)
+    public function loginEvent(Request $request, Integration $integration): JsonResponse
     {
         $this->authorizeOwner($request->user(), $integration);
 
@@ -90,14 +92,14 @@ class IntegrationController extends Controller
     }
 
     /** Target App: authenticate with the integration secret, not the user's phone token. */
-    public function publicLoginEvent(Request $request)
+    public function publicLoginEvent(Request $request): JsonResponse
     {
         $integration = $this->integrationFromSecret($request);
 
         return $this->startLoginEvent($request, $integration);
     }
 
-    public function publicEventStatus(Request $request, LoginEvent $event)
+    public function publicEventStatus(Request $request, LoginEvent $event): JsonResponse
     {
         $integration = $this->integrationFromSecret($request);
         abort_unless($event->integration_id === $integration->id, 403);
@@ -109,7 +111,7 @@ class IntegrationController extends Controller
      * Long-poll variant for external (Target App) integrations.
      * Authenticated via secret_key, mirrors gateLongPoll behaviour.
      */
-    public function publicEventLongPoll(Request $request, LoginEvent $event)
+    public function publicEventLongPoll(Request $request, LoginEvent $event): JsonResponse
     {
         $integration = $this->integrationFromSecret($request);
         abort_unless($event->integration_id === $integration->id, 403);
@@ -117,7 +119,7 @@ class IntegrationController extends Controller
         return $this->waitForEventResolution($event);
     }
 
-    public function gateShow(Integration $integration)
+    public function gateShow(Integration $integration): View
     {
         abort_unless($integration->is_active, 403);
 
@@ -127,7 +129,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function gateAttempt(Request $request, Integration $integration)
+    public function gateAttempt(Request $request, Integration $integration): JsonResponse
     {
         abort_unless($integration->is_active, 403);
 
@@ -150,6 +152,7 @@ class IntegrationController extends Controller
 
             if ($existing) {
                 $existing->setRelation('integration', $integration);
+
                 return response()->json($this->eventPayload($existing));
             }
         }
@@ -163,7 +166,7 @@ class IntegrationController extends Controller
         return response()->json($this->eventPayload($event));
     }
 
-    public function gateEventStatus(Integration $integration, LoginEvent $event)
+    public function gateEventStatus(Integration $integration, LoginEvent $event): JsonResponse
     {
         abort_unless($event->integration_id === $integration->id, 404);
 
@@ -177,7 +180,7 @@ class IntegrationController extends Controller
      * Releases the session lock immediately and exits early on client disconnect
      * so concurrent requests cannot exhaust PHP workers.
      */
-    public function gateLongPoll(Request $request, Integration $integration, LoginEvent $event)
+    public function gateLongPoll(Request $request, Integration $integration, LoginEvent $event): JsonResponse
     {
         abort_unless($event->integration_id === $integration->id, 404);
         abort_unless($integration->is_active, 403);
@@ -189,7 +192,7 @@ class IntegrationController extends Controller
         return $this->waitForEventResolution($event);
     }
 
-    private function waitForEventResolution(LoginEvent $event)
+    private function waitForEventResolution(LoginEvent $event): JsonResponse
     {
         ignore_user_abort(false);
         set_time_limit(15);
@@ -218,7 +221,7 @@ class IntegrationController extends Controller
         return response()->json($this->eventPayload($event->load('integration')));
     }
 
-    public function respondToEvent(Request $request, LoginEvent $event)
+    public function respondToEvent(Request $request, LoginEvent $event): JsonResponse
     {
         abort_unless($event->user_id === $request->user()->id, 403);
 
@@ -236,7 +239,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function history(Request $request)
+    public function history(Request $request): JsonResponse
     {
         $events = LoginEvent::with('integration:id,name,favicon_url')
             ->where('user_id', $request->user()->id)
@@ -248,7 +251,7 @@ class IntegrationController extends Controller
         return response()->json($events);
     }
 
-    public function archiveEvent(Request $request, LoginEvent $event)
+    public function archiveEvent(Request $request, LoginEvent $event): JsonResponse
     {
         abort_unless($event->user_id === $request->user()->id, 403);
         $event->update(['is_archived' => true]);
@@ -256,7 +259,7 @@ class IntegrationController extends Controller
         return response()->json(['message' => 'Event archived']);
     }
 
-    public function destroyEvent(Request $request, LoginEvent $event)
+    public function destroyEvent(Request $request, LoginEvent $event): JsonResponse
     {
         abort_unless($event->user_id === $request->user()->id, 403);
         $event->delete();
@@ -264,7 +267,7 @@ class IntegrationController extends Controller
         return response()->json(['message' => 'Event deleted']);
     }
 
-    public function pendingApprovals(Request $request)
+    public function pendingApprovals(Request $request): JsonResponse
     {
         $events = LoginEvent::with('integration:id,name,favicon_url')
             ->where('user_id', $request->user()->id)
@@ -275,36 +278,36 @@ class IntegrationController extends Controller
         return response()->json($events);
     }
 
-    public function totpCode(Request $request, Integration $integration)
+    public function totpCode(Request $request, Integration $integration): JsonResponse
     {
         $this->authorizeOwner($request->user(), $integration);
-        $g2fa = new Google2FA();
+        $g2fa = new Google2FA;
         $code = $g2fa->getCurrentOtp($integration->secret_key);
         $remaining = 30 - (time() % 30);
 
         // ── TOTP Access Tracking ─────────────────────────────────────────────
-        // Since we cannot monitor external sites directly, we treat TOTP code 
-        // access as a "Login Attempt". We throttle this to once every 30 seconds 
+        // Since we cannot monitor external sites directly, we treat TOTP code
+        // access as a "Login Attempt". We throttle this to once every 30 seconds
         // to avoid spamming the database during frontend polling.
         $existing = LoginEvent::where('integration_id', $integration->id)
             ->where('status', 'auto')
             ->where('created_at', '>=', now()->subSeconds(25))
             ->first();
 
-        if (!$existing) {
+        if (! $existing) {
             $this->recordLoginAttempt(
                 $integration,
                 $request,
                 null, // username unknown
                 $request->ip(),
-                $request->userAgent() . ' (TOTP Access)'
+                $request->userAgent().' (TOTP Access)'
             );
         }
 
         return response()->json(['code' => $code, 'expires_in' => $remaining]);
     }
 
-    private function startLoginEvent(Request $request, Integration $integration)
+    private function startLoginEvent(Request $request, Integration $integration): JsonResponse
     {
         if (! $integration->is_active) {
             return response()->json(['message' => 'Integration is disabled'], 403);
@@ -359,6 +362,9 @@ class IntegrationController extends Controller
         return $event;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function eventPayload(LoginEvent $event): array
     {
         $allowed = in_array($event->status, ['approved', 'auto'], true);
@@ -396,11 +402,14 @@ class IntegrationController extends Controller
         return $integration;
     }
 
-    private function authorizeOwner($user, Integration $integration): void
+    private function authorizeOwner(User $user, Integration $integration): void
     {
         abort_unless($integration->user_id === $user->id, 403);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function formatIntegration(Integration $i): array
     {
         return [
@@ -416,7 +425,7 @@ class IntegrationController extends Controller
         ];
     }
 
-    private function sendPushApproval($user, Integration $integration, LoginEvent $event): void
+    private function sendPushApproval(User $user, Integration $integration, LoginEvent $event): void
     {
         $devices = Device::where('user_id', $user->id)
             ->whereNotNull('expo_push_token')
@@ -441,8 +450,8 @@ class IntegrationController extends Controller
 
         try {
             $response = Http::post('https://exp.host/--/api/v2/push/send', $messages);
-            if (!$response->ok()) {
-                Log::error('Expo Push Error: ' . $response->body());
+            if (! $response->ok()) {
+                Log::error('Expo Push Error: '.$response->body());
             }
         } catch (\Throwable $e) {
             Log::warning('Push notification failed: '.$e->getMessage());

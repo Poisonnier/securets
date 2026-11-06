@@ -1,154 +1,151 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
+  Image,
   StyleSheet,
   Animated,
-  Dimensions,
+  Easing,
 } from 'react-native';
 
-const { width } = Dimensions.get('window');
-
-// ─── Inline SVG-like logo using View shapes ───
-function HexLock() {
-  return (
-    <View style={styles.hexOuter}>
-      <Text style={styles.hexLock}>🔒</Text>
-    </View>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <View style={styles.shield}>
-      <View style={styles.shieldTopLeft} />
-      <View style={styles.shieldTopRight} />
-      <View style={styles.shieldBotLeft} />
-      <View style={styles.shieldBotRight} />
-      <View style={styles.shieldOverlay}>
-        <Text style={styles.shieldCheck}>✓</Text>
-      </View>
-    </View>
-  );
-}
+const LOGO_ASSET = require('./new-securets-logo-dark.png');
 
 export default function SplashScreen({ onFinish }) {
-  const scale   = useRef(new Animated.Value(0.7)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
+  const scale      = useRef(new Animated.Value(0.88)).current;
+  const opacity    = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(12)).current;
+  const ringScale  = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
-    // Animate in
+    // Smooth, premium entrance fade + scale
     Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        friction: 5,
-        tension: 80,
-        useNativeDriver: true,
-      }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 600,
+        duration: 750,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 7,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 750,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(ringScale, {
+        toValue: 1.06,
+        duration: 1800,
+        easing: Easing.inOut(Easing.quad),
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Dismiss after 5 seconds
+    // Smooth exit transition before handoff
     const timer = setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start(() => onFinish && onFinish());
-    }, 5000);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 450,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1.04,
+          duration: 450,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start(() => onFinish && onFinish());
+    }, 2800);
 
     return () => clearTimeout(timer);
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Animated.View style={[styles.container, { opacity }]}>
-      <Animated.View style={[styles.logoWrap, { transform: [{ scale }] }]}>
-        <View style={styles.logoRow}>
-          <HexLock />
-          <View style={styles.brandTextWrap}>
-            <Text style={styles.brandName}>
-              Secure<Text style={styles.brandTs}>TS</Text>
-            </Text>
+    <View style={styles.root}>
+      <Animated.View style={[styles.container, { opacity }]}>
+        <Animated.View
+          style={[
+            styles.logoWrap,
+            { transform: [{ scale }, { translateY }] },
+          ]}
+        >
+          <View style={styles.logoBadgeOuter}>
+            <Animated.View
+              style={[
+                styles.logoGlowRing,
+                { transform: [{ scale: ringScale }] },
+              ]}
+            />
+            <View style={styles.logoCard}>
+              <Image
+                source={LOGO_ASSET}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
           </View>
-          <ShieldIcon />
-        </View>
-        <Text style={styles.tagline}>ThreatShield</Text>
+        </Animated.View>
       </Animated.View>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0E1326',
+  },
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#3866E6',
+    flex: 1,
+    backgroundColor: '#0E1326',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
   },
   logoWrap: {
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  // Hexagon lock
-  hexOuter: {
-    width: 38,
-    height: 38,
-    backgroundColor: '#0F172A',
-    borderRadius: 8,
+  logoBadgeOuter: {
+    width: 260,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    // approximate hexagon with high border radius
-    transform: [{ rotate: '0deg' }],
   },
-  hexLock: { fontSize: 18 },
-
-  // Shield
-  shield: {
-    width: 34,
-    height: 38,
-    borderRadius: 4,
+  logoGlowRing: {
+    position: 'absolute',
+    width: 260,
+    height: 120,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(61, 90, 241, 0.28)',
+    backgroundColor: 'rgba(61, 90, 241, 0.06)',
+  },
+  logoCard: {
+    width: 240,
+    height: 100,
+    borderRadius: 22,
+    backgroundColor: '#1C2236',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
     overflow: 'hidden',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  shieldTopLeft:  { width: 17, height: 19, backgroundColor: '#C0392B' },
-  shieldTopRight: { width: 17, height: 19, backgroundColor: '#ECF0F1' },
-  shieldBotLeft:  { width: 17, height: 19, backgroundColor: '#27AE60' },
-  shieldBotRight: { width: 17, height: 19, backgroundColor: '#2980B9' },
-  shieldOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shieldCheck: { color: 'white', fontSize: 16, fontWeight: '700' },
-
-  // Brand text
-  brandTextWrap: { alignItems: 'flex-start' },
-  brandName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.3,
-  },
-  brandTs: { color: '#1E3A8A' },
-  tagline: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0F172A',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginTop: 2,
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
 });
