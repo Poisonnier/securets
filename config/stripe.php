@@ -12,7 +12,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stripe Price IDs (set via `php artisan stripe:setup` or manually in .env)
+    | Stripe Price IDs (set manually in .env)
     |--------------------------------------------------------------------------
     */
     'prices' => [

@@ -17,8 +17,8 @@
  *   --select    Choose interactively when several adapters look valid.
  *   --manual    Type an IP address by hand (useful for tunnels / public hosts).
  *   --tunnel    Keep the current values but disable auto-detection. Pair with
- *               `npm run start:tunnel` or `expo start --tunnel` when the phone
- *               and PC are on different networks.
+ *               `expo start --tunnel` when the phone and PC are on different
+ *               networks.
  *   --tailscale Point the app at this machine's Tailscale IP so a phone on ANY
  *               network (another Wi-Fi, or mobile data) can still reach the API
  *               and Reverb. Requires Tailscale installed and signed in on both
@@ -421,7 +421,7 @@ async function main() {
       writeEnv(contents, chosen);
       return;
     }
-    console.warn('[lan-ip] Using best guess. Re-run with `npm run ip:select` to pick manually.');
+    console.warn('[lan-ip] Using best guess. Re-run with `npm run ip -- --select` to pick manually.');
   } else if (WANT_SELECT && runnersUps.length) {
     const chosen = await selectCandidate(candidates);
     writeEnv(contents, chosen);
