@@ -6,8 +6,9 @@ import {
 } from 'react-native';
 import { integrationApi } from '../src/api/integrations';
 import { useTheme } from '../src/theme/ThemeContext';
+import UpgradePrompt from './UpgradePrompt';
 
-export default function IntegrationScreen() {
+export default function IntegrationScreen({ onTabChange }) {
     const COLORS = useTheme();
     const styles = useMemo(() => createStyles(COLORS), [COLORS]);
     const [apps, setApps]             = useState([]);
@@ -17,6 +18,7 @@ export default function IntegrationScreen() {
     const [appName, setAppName]       = useState('');
     const [appUrl, setAppUrl]         = useState('');
     const [adding, setAdding]         = useState(false);
+    const [upgradeData, setUpgradeData] = useState(null); // { currentPlan, limit } | null
     const totpTimers = useRef({});
 
     const fetchApps = useCallback(async () => {
@@ -96,6 +98,13 @@ export default function IntegrationScreen() {
             setAppName(''); setAppUrl('');
             Alert.alert('Connected', 'This app is on your account. Copy the login link and secret. Approve or decline later logins in Alerts.');
         } catch (e) {
+            // Plan limit reached — show the UpgradePrompt bottom sheet instead of a plain alert
+            if (e.response?.status === 403 && e.response?.data?.upgrade_required) {
+                setModalVisible(false);
+                const { plan, limit } = e.response.data;
+                setUpgradeData({ currentPlan: plan ?? 'free', limit: limit ?? 3 });
+                return;
+            }
             Alert.alert('Error', e.response?.data?.message || 'Failed to add app.');
         } finally { setAdding(false); }
     };
@@ -208,7 +217,7 @@ export default function IntegrationScreen() {
                 <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setModalVisible(false)}>
                     <TouchableOpacity style={styles.modal} activeOpacity={1} onPress={() => {}}>
                         <Text style={styles.modalTitle}>Add New Integration</Text>
-                        <Text style={styles.modalSub}>Paste the app’s login URL. You’ll get a SecureTS login link and a secret key.</Text>
+                        <Text style={styles.modalSub}>Paste the app's login URL. You'll get a SecureTS login link and a secret key.</Text>
 
                         <Text style={styles.fieldLabel}>App Name</Text>
                         <TextInput
@@ -240,6 +249,15 @@ export default function IntegrationScreen() {
                     </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
+
+            {/* Upgrade Prompt (plan limit reached) */}
+            <UpgradePrompt
+                visible={!!upgradeData}
+                currentPlan={upgradeData?.currentPlan ?? 'free'}
+                limit={upgradeData?.limit ?? 3}
+                onDismiss={() => setUpgradeData(null)}
+                onViewPlans={() => { setUpgradeData(null); onTabChange?.('subscription'); }}
+            />
         </View>
     );
 }

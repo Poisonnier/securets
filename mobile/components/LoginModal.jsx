@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
-import API, { API_BASE_URL, AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
+import API, { getConfiguredEndpoints, AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
 import { useTheme } from '../src/theme/ThemeContext';
 
 /**
@@ -67,7 +67,7 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
         msg = `Sign-in failed (HTTP ${status}). Please try again.`;
       } else {
         // No response at all: the request never reached the API.
-        msg = `Cannot reach SecureTS at ${API_BASE_URL}. Check your connection and API URL.`;
+        msg = `Cannot reach SecureTS (tried ${getConfiguredEndpoints().join(' and ')}). Check your connection or VPN.`;
       }
 
       setError(msg);

@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "SecureHub",
+    "slug": "securehub-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "securets",
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
+  }
+}

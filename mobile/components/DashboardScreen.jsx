@@ -5,10 +5,11 @@ import {
   TouchableWithoutFeedback, ActivityIndicator, Alert,
 } from 'react-native';
 
-import IntegrationScreen  from './IntegrationScreen';
-import NotificationScreen from './NotificationScreen';
-import SettingsScreen     from './SettingsScreen';
-import LoginModal         from './LoginModal';
+import IntegrationScreen   from './IntegrationScreen';
+import NotificationScreen  from './NotificationScreen';
+import SettingsScreen      from './SettingsScreen';
+import SubscriptionScreen  from './SubscriptionScreen';
+import LoginModal          from './LoginModal';
 import { integrationApi } from '../src/api/integrations';
 import { useTheme } from '../src/theme/ThemeContext';
 
@@ -477,13 +478,18 @@ export default function DashboardScreen({
 
       case 'integrations':
         return isLoggedIn
-          ? <IntegrationScreen />
+          ? <IntegrationScreen onTabChange={onTabChange} />
           : <GuestGate tabName="Integration Hub" onLoginPress={openLogin} styles={styles} />;
 
       case 'notifications':
         return isLoggedIn
           ? <NotificationScreen user={user} />
           : <GuestGate tabName="Login Approvals" onLoginPress={openLogin} styles={styles} />;
+
+      case 'subscription':
+        return isLoggedIn
+          ? <SubscriptionScreen user={user} />
+          : <GuestGate tabName="Subscription" onLoginPress={openLogin} styles={styles} />;
 
       case 'settings':
         return (
@@ -523,6 +529,7 @@ export default function DashboardScreen({
           { key: 'dashboard',     icon: '⊞',  label: 'Home' },
           { key: 'integrations',  icon: '🔗',  label: 'Apps' },
           { key: 'notifications', icon: '🔔',  label: 'Alerts' },
+          { key: 'subscription',  icon: '💳',  label: 'Plans' },
           { key: 'settings',      icon: '⚙️',  label: 'Settings' },
         ].map(tab => (
           <TouchableOpacity
