@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
+  View, Text, Image, StyleSheet, TouchableOpacity,
   ScrollView, StatusBar, Modal, Pressable,
   TouchableWithoutFeedback, ActivityIndicator, Alert,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 
 import IntegrationScreen  from './IntegrationScreen';
 import NotificationScreen from './NotificationScreen';
@@ -12,19 +13,36 @@ import LoginModal         from './LoginModal';
 import { integrationApi } from '../src/api/integrations';
 import { useTheme } from '../src/theme/ThemeContext';
 
+const LOGO_ASSET = require('./new-securets-logo-dark.png');
+
 // ─── Logo Header ────────────────────────────────────────────────────────────
-function LogoHeader({ styles }) {
+function LogoHeader({ styles, onOpenNotifications, onOpenSettings }) {
   return (
     <View style={styles.logoRow}>
-      <View style={styles.hexOuter}><Text style={styles.hexLock}>🔒</Text></View>
-      <View style={styles.shield}>
-        <View style={styles.stl} /><View style={styles.str} />
-        <View style={styles.sbl} /><View style={styles.sbr} />
-        <View style={styles.shieldOverlay}><Text style={styles.shieldCheck}>✓</Text></View>
-      </View>
-      <View>
-        <Text style={styles.brandName}>Secure<Text style={styles.brandTs}>TS</Text></Text>
-        <Text style={styles.brandSub}>ThreatShield</Text>
+      <Image
+        source={LOGO_ASSET}
+        style={styles.headerLogo}
+        resizeMode="contain"
+      />
+      <View style={styles.headerActions}>
+        {onOpenNotifications && (
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={onOpenNotifications}
+            activeOpacity={0.75}
+          >
+            <Feather name="bell" size={18} color="#94A3B8" strokeWidth={1.75} />
+          </TouchableOpacity>
+        )}
+        {onOpenSettings && (
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={onOpenSettings}
+            activeOpacity={0.75}
+          >
+            <Feather name="settings" size={18} color="#94A3B8" strokeWidth={1.75} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -84,7 +102,7 @@ function DashboardHome({
     <>
       <View style={styles.welcomeBanner}>
         <Text style={styles.welcomeTitle}>
-          {user ? `Welcome, ${user.name || 'User'}! 👋` : 'Welcome to SecureTS 👋'}
+          {user ? `Welcome, ${user.name || 'User'}` : 'Welcome to SecureTS'}
         </Text>
         <Text style={styles.welcomeSub}>
           {user ? 'All linked accounts are protected.' : 'Sign in to activate your ThreatShield.'}
@@ -123,7 +141,7 @@ function DashboardHome({
                 activeOpacity={0.85}
               >
                 {approvalDecision === 'approved'
-                  ? <ActivityIndicator color="#4ADE80" size="small" />
+                  ? <ActivityIndicator color="#FFFFFF" size="small" />
                   : <Text style={styles.homeApprovalApproveText}>Approve</Text>}
               </TouchableOpacity>
               <TouchableOpacity
@@ -142,30 +160,30 @@ function DashboardHome({
 
         {user && (
           <>
-            {/* ── Stat cards (matches web dashboard) ── */}
+            {/* ── Stat cards (minimalist grid) ── */}
             <View style={styles.statsGrid}>
-              <View style={[styles.statCard, styles.statBlue]}>
+              <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Protection Status</Text>
-                <Text style={[styles.statValue, { color: '#818CF8' }]}>{protectionStatus}</Text>
+                <Text style={[styles.statValue, { color: '#00BBFF' }]}>{protectionStatus}</Text>
               </View>
-              <View style={[styles.statCard, styles.statGreen]}>
+              <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Threats Blocked</Text>
-                <Text style={[styles.statValue, { color: '#4ADE80' }]}>{threatsBlockedCount}</Text>
+                <Text style={[styles.statValue, { color: '#F8FAFC' }]}>{threatsBlockedCount}</Text>
               </View>
-              <View style={[styles.statCard, styles.statYellow]}>
+              <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Auth Latency</Text>
-                <Text style={[styles.statValue, { color: '#FACC15' }]}>{'<500ms'}</Text>
+                <Text style={[styles.statValue, { color: '#F8FAFC' }]}>{'<500ms'}</Text>
               </View>
-              <View style={[styles.statCard, styles.statRed]}>
+              <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Alerts</Text>
-                <Text style={[styles.statValue, { color: '#F87171' }]}>{alertsCount}</Text>
+                <Text style={[styles.statValue, { color: '#F8FAFC' }]}>{alertsCount}</Text>
               </View>
             </View>
 
             {/* ── All Systems Operational panel ── */}
             <View style={styles.statusPanel}>
               <View style={styles.statusIconWrap}>
-                <Text style={{ fontSize: 22 }}>🛡️</Text>
+                <Feather name="shield" size={18} color="#00BBFF" strokeWidth={1.75} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.statusTitle}>All Systems Operational</Text>
@@ -181,8 +199,8 @@ function DashboardHome({
               onPress={onOpenIntegrations}
               activeOpacity={0.85}
             >
-              <View style={[styles.statusIconWrap, { backgroundColor: 'rgba(61,90,241,0.12)' }]}>
-                <Text style={{ fontSize: 22 }}>🔗</Text>
+              <View style={styles.statusIconWrap}>
+                <Feather name="link" size={18} color="#00BBFF" strokeWidth={1.75} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.integrationCardTitle}>Integration Hub</Text>
@@ -190,7 +208,7 @@ function DashboardHome({
                   Connect external apps, manage credentials, approve or decline logins.
                 </Text>
               </View>
-              <Text style={{ color: '#94A3B8', fontSize: 22 }}>›</Text>
+              <Feather name="chevron-right" size={18} color="#94A3B8" strokeWidth={1.75} />
             </TouchableOpacity>
 
             {/* ── Recent Alerts ── */}
@@ -209,13 +227,30 @@ function DashboardHome({
                     onPress={onOpenNotifications}
                   >
                     <View style={styles.summaryIconWrap}>
-                      <Text style={{ fontSize: 16 }}>{notif.status === 'approved' ? '✅' : notif.status === 'declined' ? '❌' : '🔔'}</Text>
+                      <Feather
+                        name={
+                          notif.status === 'approved'
+                            ? 'check-circle'
+                            : notif.status === 'declined'
+                            ? 'x-circle'
+                            : 'bell'
+                        }
+                        size={16}
+                        color={
+                          notif.status === 'approved'
+                            ? '#00BBFF'
+                            : notif.status === 'declined'
+                            ? '#F87171'
+                            : '#94A3B8'
+                        }
+                        strokeWidth={1.75}
+                      />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.summaryItemTitle}>{notif.integration?.name ?? 'SecureTS Alert'}</Text>
                       <Text style={styles.summaryItemMeta}>{new Date(notif.created_at).toLocaleTimeString()}</Text>
                     </View>
-                    <Text style={styles.summaryChevron}>›</Text>
+                    <Feather name="chevron-right" size={16} color="#64748B" strokeWidth={1.75} />
                   </TouchableOpacity>
                 ))
               ) : (
@@ -229,7 +264,9 @@ function DashboardHome({
 
         {!user && (
           <View style={styles.emptyState}>
-            <Text style={{ fontSize: 52, marginBottom: 14 }}>🛡️</Text>
+            <View style={styles.emptyIconBox}>
+              <Feather name="shield" size={24} color="#00BBFF" strokeWidth={1.75} />
+            </View>
             <Text style={styles.emptyTitle}>Secure Gateway</Text>
             <Text style={styles.emptyText}>
               All systems operational. Login events will appear here once you're connected.
@@ -292,7 +329,9 @@ function ApprovalPopup({
 function GuestGate({ tabName, onLoginPress, styles }) {
   return (
     <View style={styles.gateWrap}>
-      <Text style={{ fontSize: 56, marginBottom: 18 }}>🔒</Text>
+      <View style={styles.emptyIconBox}>
+        <Feather name="lock" size={22} color="#00BBFF" strokeWidth={1.75} />
+      </View>
       <Text style={styles.gateTitle}>Sign in required</Text>
       <Text style={styles.gateSub}>
         {tabName} is only available to signed-in users.
@@ -503,12 +542,16 @@ export default function DashboardScreen({
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
+      <StatusBar barStyle="light-content" backgroundColor="#0E1326" />
 
       {/* Header — only on dashboard tab */}
       {activeTab === 'dashboard' && (
         <View style={styles.header}>
-          <LogoHeader styles={styles} />
+          <LogoHeader
+            styles={styles}
+            onOpenNotifications={() => onTabChange('notifications')}
+            onOpenSettings={() => onTabChange('settings')}
+          />
         </View>
       )}
 
@@ -520,32 +563,40 @@ export default function DashboardScreen({
       {/* ── Bottom Navigation ── */}
       <View style={styles.bottomNav}>
         {[
-          { key: 'dashboard',     icon: '⊞',  label: 'Home' },
-          { key: 'integrations',  icon: '🔗',  label: 'Apps' },
-          { key: 'notifications', icon: '🔔',  label: 'Alerts' },
-          { key: 'settings',      icon: '⚙️',  label: 'Settings' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            id={`nav${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`}
-            style={styles.navItem}
-            onPress={() => onTabChange(tab.key)}
-            activeOpacity={0.7}
-          >
-            <View style={[
-              styles.navSquare,
-              activeTab === tab.key && styles.navSquareActive,
-            ]}>
-              <Text style={styles.navIcon}>{tab.icon}</Text>
-            </View>
-            <Text style={[
-              styles.navLabel,
-              activeTab === tab.key && styles.navLabelActive,
-            ]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          { key: 'dashboard',     icon: 'grid',     label: 'Home' },
+          { key: 'integrations',  icon: 'link',     label: 'Apps' },
+          { key: 'notifications', icon: 'bell',     label: 'Alerts' },
+          { key: 'settings',      icon: 'settings', label: 'Settings' },
+        ].map(tab => {
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              id={`nav${tab.key.charAt(0).toUpperCase() + tab.key.slice(1)}`}
+              style={styles.navItem}
+              onPress={() => onTabChange(tab.key)}
+              activeOpacity={0.7}
+            >
+              <View style={[
+                styles.navSquare,
+                isActive && styles.navSquareActive,
+              ]}>
+                <Feather
+                  name={tab.icon}
+                  size={18}
+                  color={isActive ? '#00BBFF' : '#94A3B8'}
+                  strokeWidth={1.75}
+                />
+              </View>
+              <Text style={[
+                styles.navLabel,
+                isActive && styles.navLabelActive,
+              ]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {isLoggedIn && (
@@ -569,123 +620,158 @@ export default function DashboardScreen({
   );
 }
 
-const createStyles = (theme) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.bg },
+const createStyles = () => StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0E1326' },
 
   // Header
   header: {
-    backgroundColor: theme.surface,
-    paddingTop: 52, paddingBottom: 14, paddingHorizontal: 20,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(56,102,230,0.3)',
+    backgroundColor: '#0E1326',
+    paddingTop: 52,
+    paddingBottom: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  hexOuter: {
-    width: 30, height: 30, backgroundColor: theme.card,
-    borderRadius: 6, alignItems: 'center', justifyContent: 'center',
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  hexLock: { fontSize: 14 },
-  shield: {
-    width: 26, height: 30, borderRadius: 3,
-    overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap', position: 'relative',
+  headerLogo: {
+    width: 132,
+    height: 32,
   },
-  stl: { width: 13, height: 15, backgroundColor: '#C0392B' },
-  str: { width: 13, height: 15, backgroundColor: '#ECF0F1' },
-  sbl: { width: 13, height: 15, backgroundColor: '#27AE60' },
-  sbr: { width: 13, height: 15, backgroundColor: '#2980B9' },
-  shieldOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  shieldCheck: { color: 'white', fontSize: 12, fontWeight: '700' },
-  brandName: { fontSize: 15, fontWeight: '800', color: theme.text },
-  brandTs:   { color: '#3866E6' },
-  brandSub:  { fontSize: 8, color: theme.muted, fontWeight: '500' },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#1C2236',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Welcome
   welcomeBanner: {
-    backgroundColor: theme.surface,
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: theme.border,
+    backgroundColor: '#0E1326',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
-  welcomeTitle: { color: theme.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
-  welcomeSub:   { color: '#3866E6', fontSize: 13, fontWeight: '500' },
+  welcomeTitle: {
+    color: '#F8FAFC',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  welcomeSub: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '500',
+  },
 
   // Summary Section
   summarySection: {
-    backgroundColor: theme.card,
-    borderRadius: 18,
+    backgroundColor: '#1C2236',
+    borderRadius: 12,
     padding: 16,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   summaryTitle: {
-    color: theme.text,
-    fontSize: 16,
+    color: '#F8FAFC',
+    fontSize: 14,
     fontWeight: '700',
   },
   summaryLink: {
-    color: '#3866E6',
-    fontSize: 13,
+    color: '#00BBFF',
+    fontSize: 12,
     fontWeight: '600',
   },
   summaryItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   summaryIconWrap: {
-    width: 36,
-    height: 36,
-    backgroundColor: theme.surface,
+    width: 34,
+    height: 34,
+    backgroundColor: '#0E1326',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   summaryItemTitle: {
-    color: theme.text,
-    fontSize: 14,
+    color: '#F8FAFC',
+    fontSize: 13,
     fontWeight: '600',
   },
   summaryItemMeta: {
-    color: theme.muted,
-    fontSize: 12,
+    color: '#94A3B8',
+    fontSize: 11,
     marginTop: 2,
   },
-  summaryChevron: {
-    color: theme.muted,
-    fontSize: 20,
-    fontWeight: '300',
-    marginLeft: 8,
-  },
   summaryEmpty: {
-    paddingVertical: 20,
+    paddingVertical: 18,
     alignItems: 'center',
   },
   summaryEmptyText: {
-    color: theme.muted,
-    fontSize: 13,
+    color: '#64748B',
+    fontSize: 12,
   },
 
   // Feed
   feed: { flex: 1 },
   feedContent: { flexGrow: 1, padding: 20 },
   emptyState: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: '25%',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: '20%',
+    backgroundColor: '#1C2236',
+    borderRadius: 12,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptyIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#0E1326',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 187, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   homeApprovalCard: {
-    backgroundColor: theme.card,
+    backgroundColor: '#1C2236',
     borderWidth: 1,
-    borderColor: 'rgba(234,179,8,0.3)',
-    borderRadius: 18,
+    borderColor: 'rgba(0, 187, 255, 0.35)',
+    borderRadius: 12,
     padding: 18,
-    marginBottom: 18,
+    marginBottom: 16,
   },
   homeApprovalHeader: {
     flexDirection: 'row',
@@ -695,166 +781,218 @@ const createStyles = (theme) => StyleSheet.create({
     marginBottom: 10,
   },
   homeApprovalEyebrow: {
-    color: '#FACC15',
+    color: '#00BBFF',
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   homeApprovalReview: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: 'rgba(129,140,248,0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    backgroundColor: '#0E1326',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 187, 255, 0.3)',
   },
   homeApprovalReviewText: {
-    color: '#A5B4FC',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#00BBFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   homeApprovalApp: {
-    color: theme.text,
-    fontSize: 18,
+    color: '#F8FAFC',
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
   },
   homeApprovalMeta: {
-    color: theme.muted,
-    fontSize: 13,
+    color: '#94A3B8',
+    fontSize: 12,
     marginBottom: 8,
   },
   homeApprovalText: {
-    color: theme.muted,
-    fontSize: 13,
-    lineHeight: 20,
+    color: '#94A3B8',
+    fontSize: 12,
+    lineHeight: 18,
     marginBottom: 14,
   },
   homeApprovalActions: { flexDirection: 'row', gap: 10 },
   homeApprovalBtn: {
     flex: 1,
-    minHeight: 48,
-    borderRadius: 12,
+    minHeight: 42,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
   },
   homeApprovalApprove: {
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(34,197,94,0.3)',
+    backgroundColor: '#4063D7',
   },
-  homeApprovalApproveText: { color: '#4ADE80', fontWeight: '700' },
+  homeApprovalApproveText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   homeApprovalDecline: {
-    backgroundColor: 'rgba(239,68,68,0.15)',
+    backgroundColor: '#0E1326',
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
-  homeApprovalDeclineText: { color: '#F87171', fontWeight: '700' },
-  emptyTitle: { color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  emptyText:  { color: theme.muted, fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  homeApprovalDeclineText: { color: '#F87171', fontSize: 13, fontWeight: '600' },
+  emptyTitle: { color: '#F8FAFC', fontSize: 16, fontWeight: '700', marginBottom: 6 },
+  emptyText:  { color: '#94A3B8', fontSize: 12, textAlign: 'center', lineHeight: 18 },
 
   // Guest gate
   gateWrap: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40,
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32,
   },
-  gateTitle: { color: theme.text, fontSize: 20, fontWeight: '800', marginBottom: 10 },
-  gateSub:   { color: theme.muted, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  gateTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  gateSub:   { color: '#94A3B8', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   gateBtn: {
-    backgroundColor: theme.blue, borderRadius: 12,
-    paddingVertical: 14, paddingHorizontal: 40, alignItems: 'center',
+    backgroundColor: '#4063D7',
+    borderRadius: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 36,
+    alignItems: 'center',
   },
-  gateBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  gateBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 
   // Bottom nav
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: theme.surface,
+    backgroundColor: '#0E1326',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(56,102,230,0.3)',
-    paddingBottom: 28, paddingTop: 10,
-    justifyContent: 'space-evenly', alignItems: 'center',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 24,
+    paddingTop: 10,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
   },
   navItem:  { alignItems: 'center', flex: 1, gap: 4 },
   navSquare: {
-    width: 44, height: 38,
-    backgroundColor: theme.subtle,
-    borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 34,
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  navSquareActive: { backgroundColor: '#3866E6' },
-  navIcon:  { fontSize: 17 },
-  navLabel: { fontSize: 10, color: theme.muted, fontWeight: '500' },
-  navLabelActive: { color: theme.blueLight },
+  navSquareActive: {
+    backgroundColor: '#1C2236',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 187, 255, 0.3)',
+  },
+  navLabel: { fontSize: 10, color: '#94A3B8', fontWeight: '500' },
+  navLabelActive: { color: '#00BBFF', fontWeight: '600' },
 
   popupBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.72)',
-    alignItems: 'center', justifyContent: 'center', padding: 24,
+    flex: 1,
+    backgroundColor: 'rgba(14, 19, 38, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
   },
   popupCard: {
-    width: '100%', maxWidth: 360, backgroundColor: theme.card,
-    borderRadius: 16, padding: 22, borderWidth: 1, borderColor: 'rgba(234,179,8,0.35)',
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#1C2236',
+    borderRadius: 12,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 187, 255, 0.3)',
   },
-  popupTitle: { color: '#FACC15', fontSize: 12, fontWeight: '700', letterSpacing: 1, marginBottom: 8 },
-  popupApp: { color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
-  popupMeta: { color: theme.muted, fontSize: 13, marginBottom: 18 },
-  popupActions: { flexDirection: 'row', gap: 8 },
-  popupActionDisabled: { opacity: 0.7 },
+  popupTitle: {
+    color: '#00BBFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  popupApp: { color: '#F8FAFC', fontSize: 17, fontWeight: '700', marginBottom: 4 },
+  popupMeta: { color: '#94A3B8', fontSize: 12, marginBottom: 18 },
+  popupActions: { flexDirection: 'row', gap: 10 },
+  popupActionDisabled: { opacity: 0.6 },
   popupApprove: {
-    flex: 1, backgroundColor: 'rgba(34,197,94,0.15)', borderWidth: 1,
-    borderColor: 'rgba(34,197,94,0.3)', borderRadius: 10, padding: 12, alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#4063D7',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  popupApproveText: { color: '#4ADE80', fontWeight: '700' },
+  popupApproveText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
   popupDecline: {
-    flex: 1, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.3)', borderRadius: 10, padding: 12, alignItems: 'center',
+    flex: 1,
+    backgroundColor: '#0E1326',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
   },
-  popupDeclineText: { color: '#F87171', fontWeight: '700' },
+  popupDeclineText: { color: '#F87171', fontSize: 13, fontWeight: '600' },
 
-  // ── Stat cards (web-matching) ──────────────────────────────────────────
+  // ── Stat cards (minimalist grid) ───────────────────────────────────────
   statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 12,
   },
   statCard: {
-    flex: 1, minWidth: '45%',
-    backgroundColor: theme.card,
-    borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: theme.border,
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#1C2236',
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  statBlue:   { borderTopWidth: 3, borderTopColor: '#3D5AF1' },
-  statGreen:  { borderTopWidth: 3, borderTopColor: '#22C55E' },
-  statYellow: { borderTopWidth: 3, borderTopColor: '#EAB308' },
-  statRed:    { borderTopWidth: 3, borderTopColor: '#EF4444' },
   statLabel: {
-    fontSize: 10, fontWeight: '700', color: theme.muted,
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
-  statValue: { fontSize: 22, fontWeight: '800' },
+  statValue: { fontSize: 20, fontWeight: '700' },
 
   // ── Status panel ───────────────────────────────────────────────────────
   statusPanel: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: theme.card,
-    borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: theme.border,
-    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#1C2236',
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 10,
   },
   statusIconWrap: {
-    width: 48, height: 48,
-    backgroundColor: 'rgba(34,197,94,0.12)',
-    borderRadius: 24,
-    alignItems: 'center', justifyContent: 'center',
+    width: 38,
+    height: 38,
+    backgroundColor: '#0E1326',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 187, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
-  statusTitle: { color: '#4ADE80', fontSize: 14, fontWeight: '700', marginBottom: 3 },
-  statusSub:   { color: theme.muted, fontSize: 12, lineHeight: 17 },
+  statusTitle: { color: '#F8FAFC', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  statusSub:   { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
 
   // ── Integration Hub card ───────────────────────────────────────────────
   integrationCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: theme.card,
-    borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: theme.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#1C2236',
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 16,
   },
-  integrationCardTitle: { color: theme.text, fontSize: 14, fontWeight: '700', marginBottom: 3 },
-  integrationCardSub:   { color: theme.muted, fontSize: 12, lineHeight: 17 },
+  integrationCardTitle: { color: '#F8FAFC', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  integrationCardSub:   { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
 });

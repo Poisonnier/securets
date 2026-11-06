@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -9,8 +10,10 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { Feather } from '@expo/vector-icons';
 import API, { AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
+
+const LOGO_ASSET = require('./new-securets-logo-dark.png');
 
 export default function LoginScreen({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -18,6 +21,7 @@ export default function LoginScreen({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -56,20 +60,13 @@ export default function LoginScreen({ onLoginSuccess }) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        {/* Shield Logo Header */}
+        {/* Logo Header */}
         <View style={styles.logoContainer}>
-          <Svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-            <Path
-              d="M32 6L10 16V30C10 44.4 19.4 57.6 32 62C44.6 57.6 54 44.4 54 30V16L32 6Z"
-              fill="#3866E6"
-            />
-            <Path
-              d="M32 14L16 22V30C16 41 22.8 51.5 32 55C41.2 51.5 48 41 48 30V22L32 14Z"
-              fill="#254EDB"
-            />
-            <Circle cx="32" cy="32" r="8" fill="#FFFFFF" opacity="0.9" />
-          </Svg>
-          <Text style={styles.title}>SecureTS</Text>
+          <Image
+            source={LOGO_ASSET}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Mobile ThreatShield Gateway</Text>
         </View>
 
@@ -77,11 +74,16 @@ export default function LoginScreen({ onLoginSuccess }) {
         <View style={styles.formGroup}>
           <Text style={styles.label}>EMAIL ADDRESS</Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              focusedField === 'email' && styles.inputFocused,
+            ]}
             placeholder="you@example.com"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#64748B"
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
@@ -92,20 +94,35 @@ export default function LoginScreen({ onLoginSuccess }) {
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>PASSWORD</Text>
-          <View style={styles.pwRow}>
+          <View
+            style={[
+              styles.pwWrapper,
+              focusedField === 'password' && styles.inputFocused,
+            ]}
+          >
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={styles.pwInput}
               placeholder="••••••••"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#64748B"
               value={password}
               onChangeText={setPassword}
+              onFocus={() => setFocusedField('password')}
+              onBlur={() => setFocusedField(null)}
               secureTextEntry={!showPw}
               autoCorrect={false}
               textContentType="password"
               importantForAutofill="yes"
             />
-            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPw(v => !v)}>
-              <Text style={styles.eyeText}>{showPw ? '🙈' : '👁️'}</Text>
+            <TouchableOpacity
+              style={styles.eyeBtn}
+              onPress={() => setShowPw((v) => !v)}
+              activeOpacity={0.7}
+            >
+              <Feather
+                name={showPw ? 'eye-off' : 'eye'}
+                size={18}
+                color={showPw ? '#00BBFF' : '#94A3B8'}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -119,7 +136,7 @@ export default function LoginScreen({ onLoginSuccess }) {
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
@@ -144,7 +161,7 @@ export default function LoginScreen({ onLoginSuccess }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0E1326',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -152,65 +169,79 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
+    backgroundColor: '#1C2236',
+    borderRadius: 12,
     padding: 28,
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#3866E6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 28,
   },
-  title: {
-    color: '#F8FAFC',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 12,
-    letterSpacing: 0.5,
+  logoImage: {
+    width: 180,
+    height: 48,
   },
   subtitle: {
     color: '#94A3B8',
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 12,
+    marginTop: 10,
+    letterSpacing: 0.3,
   },
   formGroup: {
     marginBottom: 18,
   },
   label: {
-    color: '#CBD5E1',
+    color: '#94A3B8',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 8,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   input: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0E1326',
     borderWidth: 1,
-    borderColor: '#334155',
-    borderRadius: 10,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: '#F8FAFC',
     fontSize: 14,
   },
-  pwRow:   { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eyeBtn:  { padding: 10 },
-  eyeText: { fontSize: 18 },
+  inputFocused: {
+    borderColor: '#00BBFF',
+  },
+  pwWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0E1326',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+  },
+  pwInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#F8FAFC',
+    fontSize: 14,
+  },
+  eyeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   errorText: {
-    color: '#EF4444',
+    color: '#F87171',
     fontSize: 12,
     marginBottom: 16,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#3866E6',
-    borderRadius: 10,
+    backgroundColor: '#4063D7',
+    borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,15 +252,18 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   footerNote: {
     marginTop: 20,
     alignItems: 'center',
+    gap: 4,
   },
   footerText: {
     color: '#64748B',
     fontSize: 11,
+    textAlign: 'center',
   },
 });
