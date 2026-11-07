@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "SecureTS",
+    "slug": "securehub-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "barStyle": "light-content",
+      "backgroundColor": "#0E1326"
+    }
+  }
+}

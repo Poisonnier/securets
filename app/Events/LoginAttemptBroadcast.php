@@ -52,6 +52,7 @@ class LoginAttemptBroadcast implements ShouldBroadcastNow
         return [
             'id' => $this->loginEvent->id,
             'event_id' => $this->loginEvent->id,
+            'user_id' => $this->loginEvent->user_id,
             'status' => $this->loginEvent->status,
             'ip_address' => $this->loginEvent->ip_address,
             'device' => $this->loginEvent->device,

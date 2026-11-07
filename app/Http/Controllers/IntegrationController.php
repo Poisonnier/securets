@@ -67,12 +67,24 @@ class IntegrationController extends Controller
         return response()->json($this->formatIntegration($integration), 201);
     }
 
+    public function update(Request $request, Integration $integration): JsonResponse
+    {
+        $this->authorizeOwner($request->user(), $integration);
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+        ]);
+        $integration->update(['name' => $data['name']]);
+
+        return response()->json($this->formatIntegration($integration->fresh()));
+    }
+
     public function destroy(Request $request, Integration $integration): JsonResponse
     {
         $this->authorizeOwner($request->user(), $integration);
+        $integration->loginEvents()->delete();
         $integration->delete();
 
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => 'Deleted', 'id' => $integration->id]);
     }
 
     public function toggle(Request $request, Integration $integration): JsonResponse
@@ -223,13 +235,11 @@ class IntegrationController extends Controller
 
     public function respondToEvent(Request $request, LoginEvent $event): JsonResponse
     {
-        abort_unless($event->user_id === $request->user()->id, 403);
+        abort_unless((int) $event->user_id === (int) $request->user()->id, 403);
 
         $data = $request->validate([
             'decision' => 'required|in:approved,declined',
         ]);
-
-        abort_unless($event->status === 'pending', 409, 'This login is no longer pending.');
 
         $event->update(['status' => $data['decision']]);
 
@@ -241,9 +251,13 @@ class IntegrationController extends Controller
 
     public function history(Request $request): JsonResponse
     {
+        $userId = $request->user()->id;
+
         $events = LoginEvent::with('integration:id,name,favicon_url')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $userId)
+            ->whereHas('integration', fn ($query) => $query->where('user_id', $userId))
             ->where('is_archived', false)
+            ->where('status', '!=', 'pending')
             ->latest()
             ->take(50)
             ->get();
@@ -253,7 +267,7 @@ class IntegrationController extends Controller
 
     public function archiveEvent(Request $request, LoginEvent $event): JsonResponse
     {
-        abort_unless($event->user_id === $request->user()->id, 403);
+        abort_unless((int) $event->user_id === (int) $request->user()->id, 403);
         $event->update(['is_archived' => true]);
 
         return response()->json(['message' => 'Event archived']);
@@ -261,7 +275,7 @@ class IntegrationController extends Controller
 
     public function destroyEvent(Request $request, LoginEvent $event): JsonResponse
     {
-        abort_unless($event->user_id === $request->user()->id, 403);
+        abort_unless((int) $event->user_id === (int) $request->user()->id, 403);
         $event->delete();
 
         return response()->json(['message' => 'Event deleted']);
@@ -269,9 +283,19 @@ class IntegrationController extends Controller
 
     public function pendingApprovals(Request $request): JsonResponse
     {
-        $events = LoginEvent::with('integration:id,name,favicon_url')
-            ->where('user_id', $request->user()->id)
+        $userId = $request->user()->id;
+        $cutoff = now()->subMinutes(5);
+
+        LoginEvent::where('user_id', $userId)
             ->where('status', 'pending')
+            ->where('created_at', '<', $cutoff)
+            ->update(['status' => 'expired']);
+
+        $events = LoginEvent::with('integration:id,name,favicon_url')
+            ->where('user_id', $userId)
+            ->whereHas('integration', fn ($query) => $query->where('user_id', $userId))
+            ->where('status', 'pending')
+            ->where('created_at', '>=', $cutoff)
             ->latest()
             ->get();
 
@@ -284,25 +308,6 @@ class IntegrationController extends Controller
         $g2fa = new Google2FA;
         $code = $g2fa->getCurrentOtp($integration->secret_key);
         $remaining = 30 - (time() % 30);
-
-        // ── TOTP Access Tracking ─────────────────────────────────────────────
-        // Since we cannot monitor external sites directly, we treat TOTP code
-        // access as a "Login Attempt". We throttle this to once every 30 seconds
-        // to avoid spamming the database during frontend polling.
-        $existing = LoginEvent::where('integration_id', $integration->id)
-            ->where('status', 'auto')
-            ->where('created_at', '>=', now()->subSeconds(25))
-            ->first();
-
-        if (! $existing) {
-            $this->recordLoginAttempt(
-                $integration,
-                $request,
-                null, // username unknown
-                $request->ip(),
-                $request->userAgent().' (TOTP Access)'
-            );
-        }
 
         return response()->json(['code' => $code, 'expires_in' => $remaining]);
     }
@@ -404,7 +409,7 @@ class IntegrationController extends Controller
 
     private function authorizeOwner(User $user, Integration $integration): void
     {
-        abort_unless($integration->user_id === $user->id, 403);
+        abort_unless((int) $integration->user_id === (int) $user->id, 403);
     }
 
     /**
