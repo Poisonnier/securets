@@ -479,8 +479,8 @@ export default function DashboardScreen({
 
       case 'integrations':
         return isLoggedIn
-          ? <IntegrationScreen />
-          : <GuestGate tabName="Apps" onLoginPress={openLogin} styles={styles} />;
+          ? <IntegrationScreen onTabChange={onTabChange} />
+          : <GuestGate tabName="Apps" onLoginPress={openLogin} colors={colors} styles={styles} />;
 
       case 'notifications':
         return isLoggedIn
@@ -528,10 +528,11 @@ export default function DashboardScreen({
       {/* ── Bottom Navigation ── */}
       <View style={styles.bottomNav}>
         {[
-          { key: 'dashboard',     icon: 'grid',     label: 'Home' },
-          { key: 'integrations',  icon: 'link',     label: 'Apps' },
-          { key: 'notifications', icon: 'bell',     label: 'Alerts' },
-          { key: 'settings',      icon: 'settings', label: 'Settings' },
+          { key: 'dashboard',     icon: 'grid',        label: 'Home' },
+          { key: 'integrations',  icon: 'link',        label: 'Apps' },
+          { key: 'notifications', icon: 'bell',        label: 'Alerts' },
+          { key: 'subscription',  icon: 'credit-card', label: 'Subscription' },
+          { key: 'settings',      icon: 'settings',    label: 'Settings' },
         ].map(tab => {
           const isActive = activeTab === tab.key;
           const showBadge = tab.key === 'notifications' && hasActiveAlerts;
