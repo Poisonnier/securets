@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl,
+    ActivityIndicator, Alert, FlatList, Image, Modal, Platform, RefreshControl,
     ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity,
     View,
 } from 'react-native';
@@ -15,16 +15,32 @@ export default function IntegrationScreen({ onTabChange }) {
     const [loading, setLoading]       = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const [editingApp, setEditingApp]     = useState(null);
+    const [editAppName, setEditAppName]   = useState('');
+    const [appToRemove, setAppToRemove]   = useState(null);
     const [appName, setAppName]       = useState('');
     const [appUrl, setAppUrl]         = useState('');
     const [adding, setAdding]         = useState(false);
     const [upgradeData, setUpgradeData] = useState(null); // { currentPlan, limit } | null
-    const totpTimers = useRef({});
+    const appsRef = useRef([]);
+    const editedNamesRef = useRef({});
+
+    useEffect(() => {
+        appsRef.current = apps;
+    }, [apps]);
 
     const fetchApps = useCallback(async () => {
         try {
             const res = await integrationApi.list();
-            setApps(res.data);
+            setApps(prev => {
+                const prevMap = new Map(prev.map(a => [a.id, a]));
+                return (res.data ?? []).map(app => ({
+                    ...app,
+                    name: editedNamesRef.current[app.id] ?? app.name,
+                    totp: prevMap.get(app.id)?.totp,
+                    totpExpiry: prevMap.get(app.id)?.totpExpiry,
+                }));
+            });
         } catch (e) {
             Alert.alert('Error', 'Could not load integrations.');
         } finally {
@@ -40,49 +56,123 @@ export default function IntegrationScreen({ onTabChange }) {
         return () => clearInterval(interval);
     }, [fetchApps]);
 
-    // Poll TOTP codes every second
+    // Poll TOTP codes every second only for active apps
     useEffect(() => {
         if (!apps.length) return;
-        const fetch = async () => {
-            const updated = await Promise.all(
-                apps.map(async (app) => {
+        let cancelled = false;
+        const fetchTotp = async () => {
+            const activeApps = appsRef.current.filter(app => app.is_active);
+            if (!activeApps.length) return;
+            const entries = await Promise.all(
+                activeApps.map(async (app) => {
                     try {
                         const r = await integrationApi.totp(app.id);
-                        return { ...app, totp: r.data.code, totpExpiry: r.data.expires_in };
-                    } catch { return app; }
+                        return [app.id, { totp: r.data.code, totpExpiry: r.data.expires_in }];
+                    } catch {
+                        return [app.id, null];
+                    }
                 })
             );
-            setApps(updated);
+            if (cancelled) return;
+            const totpMap = Object.fromEntries(entries.filter(([, v]) => v !== null));
+            setApps(prev =>
+                prev.map(a => (a.is_active && totpMap[a.id] ? { ...a, ...totpMap[a.id] } : a))
+            );
         };
-        fetch();
-        const interval = setInterval(fetch, 1000);
-        return () => clearInterval(interval);
+        fetchTotp();
+        const interval = setInterval(fetchTotp, 1000);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, [apps.length]);
 
     const handleToggle = async (app) => {
+        const nextActive = !app.is_active;
+        // Immediate optimistic state update; halt TOTP when toggled off
+        setApps(prev =>
+            prev.map(a =>
+                a.id === app.id
+                    ? {
+                        ...a,
+                        is_active: nextActive,
+                        ...(nextActive ? {} : { totp: null, totpExpiry: 0 }),
+                    }
+                    : a
+            )
+        );
         try {
             const res = await integrationApi.toggle(app.id);
-            setApps(prev => prev.map(a => a.id === app.id ? { ...a, is_active: res.data.is_active } : a));
+            const serverActive = res.data?.is_active ?? nextActive;
+            setApps(prev =>
+                prev.map(a =>
+                    a.id === app.id
+                        ? {
+                            ...a,
+                            is_active: serverActive,
+                            ...(serverActive ? {} : { totp: null, totpExpiry: 0 }),
+                        }
+                        : a
+                )
+            );
+            if (serverActive) {
+                try {
+                    const r = await integrationApi.totp(app.id);
+                    setApps(prev =>
+                        prev.map(a =>
+                            a.id === app.id && a.is_active
+                                ? { ...a, totp: r.data.code, totpExpiry: r.data.expires_in }
+                                : a
+                        )
+                    );
+                } catch {}
+            }
         } catch {
+            // Revert on failure
+            setApps(prev => prev.map(a => a.id === app.id ? { ...a, is_active: app.is_active } : a));
             Alert.alert('Error', 'Could not toggle app.');
         }
     };
 
+    const performRemove = async (app) => {
+        if (!app) return;
+        const snapshot = appsRef.current;
+        setAppToRemove(null);
+        setApps(prev => prev.filter(a => a.id !== app.id));
+        try {
+            await integrationApi.remove(app.id);
+        } catch {
+            setApps(snapshot);
+            Alert.alert('Error', 'Could not remove integration.');
+        }
+    };
+
     const handleRemove = (app) => {
-        Alert.alert(
-            'Remove Integration',
-            `Remove "${app.name}"? This cannot be undone.`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Remove', style: 'destructive',
-                    onPress: async () => {
-                        await integrationApi.remove(app.id);
-                        setApps(prev => prev.filter(a => a.id !== app.id));
-                    },
-                },
-            ]
+        setAppToRemove(app);
+    };
+
+    const openEditModal = (app) => {
+        setEditingApp(app);
+        setEditAppName(app.name ?? '');
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingApp) return;
+        const trimmedName = editAppName.trim();
+        if (!trimmedName) {
+            Alert.alert('Required', 'Please enter an app name.');
+            return;
+        }
+        const targetId = editingApp.id;
+        editedNamesRef.current[targetId] = trimmedName;
+        setApps(prev =>
+            prev.map(a => (a.id === targetId ? { ...a, name: trimmedName } : a))
         );
+        setEditingApp(null);
+        setEditAppName('');
+        try {
+            await integrationApi.update?.(targetId, { name: trimmedName });
+        } catch {}
     };
 
     const handleAdd = async () => {
@@ -122,7 +212,6 @@ export default function IntegrationScreen({ onTabChange }) {
                 </View>
                 <View style={styles.appInfo}>
                     <Text style={styles.appName}>{app.name}</Text>
-                    <Text style={styles.appUrl} numberOfLines={1}>{app.url}</Text>
                 </View>
                 <Switch
                     value={!!app.is_active}
@@ -133,32 +222,35 @@ export default function IntegrationScreen({ onTabChange }) {
             </View>
 
             {/* TOTP row */}
-            <View style={styles.totpRow}>
+            <View style={[styles.totpRow, !app.is_active && { opacity: 0.5 }]}>
                 <View>
                     <Text style={styles.totpLabel}>TOTP CODE</Text>
-                    <Text style={styles.totpCode}>{app.totp || '──────'}</Text>
+                    <Text style={styles.totpCode}>
+                        {app.is_active ? (app.totp || '──────') : '──────'}
+                    </Text>
                 </View>
                 <View style={styles.totpTimer}>
-                    <Text style={styles.totpTimerText}>{app.totpExpiry ?? 30}s</Text>
+                    <Text style={styles.totpTimerText}>
+                        {app.is_active ? `${app.totpExpiry ?? 30}s` : 'Paused'}
+                    </Text>
                     <View style={styles.totpBarBg}>
-                        <View style={[styles.totpBar, { width: `${((app.totpExpiry ?? 30) / 30) * 100}%` }]} />
+                        <View
+                            style={[
+                                styles.totpBar,
+                                { width: app.is_active ? `${((app.totpExpiry ?? 30) / 30) * 100}%` : '0%' },
+                            ]}
+                        />
                     </View>
                 </View>
             </View>
 
-            {/* Actions */}
+            {/* Actions (two primary buttons: Edit Details and Remove) */}
             <View style={styles.cardActions}>
                 <TouchableOpacity
                     style={[styles.actionBtn, styles.actionBtnInfo]}
-                    onPress={() => Alert.alert('Login page', app.gate_url || 'Link not ready yet')}
+                    onPress={() => openEditModal(app)}
                 >
-                    <Text style={styles.actionBtnInfoText}>Login Link</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.actionBtn, styles.actionBtnInfo]}
-                    onPress={() => Alert.alert('Secret Key', app.secret_key)}
-                >
-                    <Text style={styles.actionBtnInfoText}>View Secret</Text>
+                    <Text style={styles.actionBtnInfoText}>Edit Details</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.actionBtn, styles.actionBtnDanger]}
@@ -176,19 +268,10 @@ export default function IntegrationScreen({ onTabChange }) {
             <View style={styles.header}>
                 <View>
                     <Text style={styles.headerTitle}>My Apps</Text>
-                    <Text style={styles.headerSub}>{apps.length} integration{apps.length !== 1 ? 's' : ''}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity
-                        style={[styles.addBtn, { backgroundColor: COLORS.subtle }]}
-                        onPress={() => { setRefreshing(true); fetchApps(); }}
-                    >
-                        <Text style={[styles.addBtnText, { color: COLORS.text }]}>Refresh</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-                        <Text style={styles.addBtnText}>+ Add App</Text>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                    <Text style={styles.addBtnText}>+ Add App</Text>
+                </TouchableOpacity>
             </View>
 
             {loading ? (
@@ -250,7 +333,78 @@ export default function IntegrationScreen({ onTabChange }) {
                 </TouchableOpacity>
             </Modal>
 
-            {/* Upgrade Prompt (plan limit reached) */}
+            {/* Edit Details Modal */}
+            <Modal visible={!!editingApp} transparent animationType="slide" onRequestClose={() => setEditingApp(null)}>
+                <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setEditingApp(null)}>
+                    <TouchableOpacity style={styles.modal} activeOpacity={1} onPress={() => {}}>
+                        <Text style={styles.modalTitle}>Edit Details</Text>
+                        <Text style={styles.modalSub}>Update the display name for this integration.</Text>
+
+                        <Text style={styles.fieldLabel}>App Name</Text>
+                        <TextInput
+                            style={styles.fieldInput}
+                            placeholder="e.g. Google Workspace"
+                            placeholderTextColor={COLORS.muted}
+                            value={editAppName}
+                            onChangeText={setEditAppName}
+                        />
+                        <Text style={styles.fieldLabel}>App URL</Text>
+                        <TextInput
+                            style={[styles.fieldInput, { opacity: 0.6 }]}
+                            value={editingApp?.url ?? ''}
+                            editable={false}
+                            selectTextOnFocus={false}
+                        />
+
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.btnCancel} onPress={() => setEditingApp(null)}>
+                                <Text style={styles.btnCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveEdit}>
+                                <Text style={styles.btnPrimaryText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Remove App Confirmation Modal */}
+            <Modal
+                visible={!!appToRemove}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setAppToRemove(null)}
+            >
+                <TouchableOpacity
+                    style={[styles.modalBackdrop, { justifyContent: 'center', padding: 24 }]}
+                    activeOpacity={1}
+                    onPress={() => setAppToRemove(null)}
+                >
+                    <TouchableOpacity
+                        style={[styles.modal, { borderRadius: 16, paddingBottom: 24 }]}
+                        activeOpacity={1}
+                        onPress={() => {}}
+                    >
+                        <Text style={styles.modalTitle}>Remove Integration</Text>
+                        <Text style={styles.modalSub}>
+                            Are you sure you want to remove "{appToRemove?.name}"? This action cannot be undone.
+                        </Text>
+                        <View style={styles.modalActions}>
+                            <TouchableOpacity style={styles.btnCancel} onPress={() => setAppToRemove(null)}>
+                                <Text style={styles.btnCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.btnPrimary, { backgroundColor: '#EF4444' }]}
+                                onPress={() => performRemove(appToRemove)}
+                            >
+                                <Text style={styles.btnPrimaryText}>Remove</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Plan limit reached — upgrade bottom sheet */}
             <UpgradePrompt
                 visible={!!upgradeData}
                 currentPlan={upgradeData?.currentPlan ?? 'free'}

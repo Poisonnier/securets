@@ -191,8 +191,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   topLogo: {
-    width: 132,
+    width: 70,
     height: 36,
+    alignSelf: 'flex-start',
   },
   pageIndicatorWrap: {
     flexDirection: 'row',
@@ -308,9 +309,9 @@ const styles = StyleSheet.create({
   // Button
   getStartedBtn: {
     width: '100%',
-    backgroundColor: '#1C2236',
+    backgroundColor: '#00BBFF',
     borderWidth: 1,
-    borderColor: 'rgba(61, 90, 241, 0.5)',
+    borderColor: '#00BBFF',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,

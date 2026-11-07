@@ -7,6 +7,9 @@ export const integrationApi = {
     // Add a new integration
     add: (name, url) => API.post('/integrations', { name, url }),
 
+    // Update an integration's details
+    update: (id, data) => API.patch(`/integrations/${id}`, data),
+
     // Delete an integration
     remove: (id) => API.delete(`/integrations/${id}`),
 

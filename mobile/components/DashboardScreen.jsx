@@ -17,7 +17,7 @@ import { useTheme } from '../src/theme/ThemeContext';
 const LOGO_ASSET = require('./new-securets-logo-dark.png');
 
 // ─── Logo Header ────────────────────────────────────────────────────────────
-function LogoHeader({ styles, colors, onOpenNotifications, onOpenSettings }) {
+function LogoHeader({ styles }) {
   return (
     <View style={styles.logoRow}>
       <Image
@@ -25,26 +25,6 @@ function LogoHeader({ styles, colors, onOpenNotifications, onOpenSettings }) {
         style={styles.headerLogo}
         resizeMode="contain"
       />
-      <View style={styles.headerActions}>
-        {onOpenNotifications && (
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={onOpenNotifications}
-            activeOpacity={0.75}
-          >
-            <Feather name="bell" size={18} color={colors.muted} strokeWidth={1.75} />
-          </TouchableOpacity>
-        )}
-        {onOpenSettings && (
-          <TouchableOpacity
-            style={styles.headerIconBtn}
-            onPress={onOpenSettings}
-            activeOpacity={0.75}
-          >
-            <Feather name="settings" size={18} color={colors.muted} strokeWidth={1.75} />
-          </TouchableOpacity>
-        )}
-      </View>
     </View>
   );
 }
@@ -71,12 +51,12 @@ function DashboardHome({
   onRespondToApproval,
   approvalDecision,
   onOpenNotifications,
-  onOpenIntegrations,
   colors,
   styles,
 }) {
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [alertsCount, setAlertsCount] = useState(0);
+  const [integratedAppsCount, setIntegratedAppsCount] = useState(0);
   const [threatsBlockedCount, setThreatsBlockedCount] = useState(0);
   const [protectionStatus, setProtectionStatus] = useState('Active');
 
@@ -93,6 +73,7 @@ function DashboardHome({
 
         setRecentNotifications(events.slice(0, 3));
         setAlertsCount(events.length);
+        setIntegratedAppsCount(apps.length);
         setThreatsBlockedCount(events.filter((e) => e.status === 'declined').length);
         setProtectionStatus(apps.some((a) => a.is_active) ? 'Active' : 'Standby');
       } catch (_) {}
@@ -102,14 +83,6 @@ function DashboardHome({
 
   return (
     <>
-      <View style={styles.welcomeBanner}>
-        <Text style={styles.welcomeTitle}>
-          {user ? `Welcome, ${user.name || 'User'}` : 'Welcome to SecureTS'}
-        </Text>
-        <Text style={styles.welcomeSub}>
-          {user ? 'All linked accounts are protected.' : 'Sign in to activate your ThreatShield.'}
-        </Text>
-      </View>
       <ScrollView
         style={styles.feed}
         contentContainerStyle={styles.feedContent}
@@ -173,8 +146,8 @@ function DashboardHome({
                 <Text style={[styles.statValue, { color: colors.text }]}>{threatsBlockedCount}</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Auth Latency</Text>
-                <Text style={[styles.statValue, { color: colors.text }]}>{'<500ms'}</Text>
+                <Text style={styles.statLabel}>Integrated Apps</Text>
+                <Text style={[styles.statValue, { color: '#F8FAFC' }]}>{integratedAppsCount}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>Alerts</Text>
@@ -194,24 +167,6 @@ function DashboardHome({
                 </Text>
               </View>
             </View>
-
-            {/* ── Integration Hub card ── */}
-            <TouchableOpacity
-              style={styles.integrationCard}
-              onPress={onOpenIntegrations}
-              activeOpacity={0.85}
-            >
-              <View style={styles.statusIconWrap}>
-                <Feather name="link" size={18} color={colors.blueLight} strokeWidth={1.75} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.integrationCardTitle}>Integration Hub</Text>
-                <Text style={styles.integrationCardSub}>
-                  Connect external apps, manage credentials, approve or decline logins.
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={colors.muted} strokeWidth={1.75} />
-            </TouchableOpacity>
 
             {/* ── Recent Alerts ── */}
             <View style={styles.summarySection}>
@@ -293,37 +248,36 @@ function ApprovalPopup({
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.popupBackdrop} onPress={onDismiss}>
-        <TouchableWithoutFeedback>
-          <View style={styles.popupCard}>
-            <Text style={styles.popupTitle}>Login request</Text>
-            <Text style={styles.popupApp}>{event.integration?.name ?? 'Linked app'}</Text>
-            <Text style={styles.popupMeta}>{approvalMeta(event)}</Text>
-            <View style={styles.popupActions}>
-              <TouchableOpacity
-                style={[styles.popupApprove, approvalDecision && styles.popupActionDisabled]}
-                onPress={() => onRespond('approved')}
-                disabled={!!approvalDecision}
-                activeOpacity={0.85}
-              >
-                {approvalDecision === 'approved'
-                  ? <ActivityIndicator color={colors.success} size="small" />
-                  : <Text style={styles.popupApproveText}>Approve</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.popupDecline, approvalDecision && styles.popupActionDisabled]}
-                onPress={() => onRespond('declined')}
-                disabled={!!approvalDecision}
-                activeOpacity={0.85}
-              >
-                {approvalDecision === 'declined'
-                  ? <ActivityIndicator color={colors.danger} size="small" />
-                  : <Text style={styles.popupDeclineText}>Decline</Text>}
-              </TouchableOpacity>
-            </View>
+      <View style={styles.popupBackdrop}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} />
+        <View style={styles.popupCard}>
+          <Text style={styles.popupTitle}>Login request</Text>
+          <Text style={styles.popupApp}>{event.integration?.name ?? 'Linked app'}</Text>
+          <Text style={styles.popupMeta}>{approvalMeta(event)}</Text>
+          <View style={styles.popupActions}>
+            <TouchableOpacity
+              style={[styles.popupApprove, approvalDecision && styles.popupActionDisabled]}
+              onPress={() => onRespond('approved')}
+              disabled={!!approvalDecision}
+              activeOpacity={0.85}
+            >
+              {approvalDecision === 'approved'
+                ? <ActivityIndicator color="#4ADE80" size="small" />
+                : <Text style={styles.popupApproveText}>Approve</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.popupDecline, approvalDecision && styles.popupActionDisabled]}
+              onPress={() => onRespond('declined')}
+              disabled={!!approvalDecision}
+              activeOpacity={0.85}
+            >
+              {approvalDecision === 'declined'
+                ? <ActivityIndicator color="#F87171" size="small" />
+                : <Text style={styles.popupDeclineText}>Decline</Text>}
+            </TouchableOpacity>
           </View>
-        </TouchableWithoutFeedback>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -355,6 +309,7 @@ export default function DashboardScreen({
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [pendingApproval, setPendingApproval] = useState(null);
+  const [pendingAlertsCount, setPendingAlertsCount] = useState(0);
   const [approvalPopupVisible, setApprovalPopupVisible] = useState(false);
   const [approvalDecision, setApprovalDecision] = useState(null);
   const pendingApprovalIdRef = useRef(null);
@@ -375,6 +330,7 @@ export default function DashboardScreen({
       pendingApprovalIdRef.current = null;
       dismissedApprovalIdRef.current = null;
       setPendingApproval(null);
+      setPendingAlertsCount(0);
       setApprovalPopupVisible(false);
       setApprovalDecision(null);
       return;
@@ -389,7 +345,9 @@ export default function DashboardScreen({
           return;
         }
 
-        const nextEvent = response.data?.[0] ?? null;
+        const list = response.data ?? [];
+        setPendingAlertsCount(list.length);
+        const nextEvent = list[0] ?? null;
 
         if (!nextEvent) {
           pendingApprovalIdRef.current = null;
@@ -484,15 +442,17 @@ export default function DashboardScreen({
   };
 
   const respondToApproval = async (decision) => {
-    if (!pendingApproval || approvalDecision) return;
+    const eventId = pendingApproval?.id ?? pendingApproval?.event_id;
+    if (!eventId || approvalDecision) return;
 
     setApprovalDecision(decision);
 
     try {
-      await integrationApi.respond(pendingApproval.id, decision);
+      await integrationApi.respond(eventId, decision);
       pendingApprovalIdRef.current = null;
       dismissedApprovalIdRef.current = null;
       setPendingApproval(null);
+      setPendingAlertsCount((prev) => Math.max(0, prev - 1));
       setApprovalPopupVisible(false);
     } catch (_) {
       Alert.alert('Error', 'Could not submit your response.');
@@ -512,7 +472,6 @@ export default function DashboardScreen({
             onRespondToApproval={respondToApproval}
             approvalDecision={approvalDecision}
             onOpenNotifications={() => onTabChange('notifications')}
-            onOpenIntegrations={() => onTabChange('integrations')}
             colors={colors}
             styles={styles}
           />
@@ -520,8 +479,8 @@ export default function DashboardScreen({
 
       case 'integrations':
         return isLoggedIn
-          ? <IntegrationScreen onTabChange={onTabChange} />
-          : <GuestGate tabName="Integration Hub" onLoginPress={openLogin} colors={colors} styles={styles} />;
+          ? <IntegrationScreen />
+          : <GuestGate tabName="Apps" onLoginPress={openLogin} styles={styles} />;
 
       case 'notifications':
         return isLoggedIn
@@ -539,7 +498,6 @@ export default function DashboardScreen({
             user={user}
             onLoginPress={openLogin}
             onLogout={onLogout}
-            onOpenIntegrations={() => onTabChange('integrations')}
             onOpenApprovals={() => onTabChange('notifications')}
           />
         );
@@ -549,6 +507,8 @@ export default function DashboardScreen({
     }
   };
 
+  const hasActiveAlerts = isLoggedIn && (pendingAlertsCount > 0 || !!pendingApproval);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={colors.statusBar} backgroundColor={colors.surface} />
@@ -556,12 +516,7 @@ export default function DashboardScreen({
       {/* Header — only on dashboard tab */}
       {activeTab === 'dashboard' && (
         <View style={styles.header}>
-          <LogoHeader
-            colors={colors}
-            styles={styles}
-            onOpenNotifications={() => onTabChange('notifications')}
-            onOpenSettings={() => onTabChange('settings')}
-          />
+          <LogoHeader styles={styles} />
         </View>
       )}
 
@@ -579,6 +534,7 @@ export default function DashboardScreen({
           { key: 'settings',      icon: 'settings', label: 'Settings' },
         ].map(tab => {
           const isActive = activeTab === tab.key;
+          const showBadge = tab.key === 'notifications' && hasActiveAlerts;
           return (
             <TouchableOpacity
               key={tab.key}
@@ -597,6 +553,7 @@ export default function DashboardScreen({
                   color={isActive ? colors.blueLight : colors.muted}
                   strokeWidth={1.75}
                 />
+                {showBadge && <View style={styles.navAlertDot} />}
               </View>
               <Text style={[
                 styles.navLabel,
@@ -648,28 +605,15 @@ const createStyles = (C) => StyleSheet.create({
     borderBottomColor: C.border,
   },
   logoRow: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerLogo: {
-    width: 132,
+    width: 70,
     height: 32,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: C.card,
-    borderWidth: 1,
-    borderColor: C.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignSelf: 'flex-start',
   },
 
   // Welcome
@@ -872,10 +816,11 @@ const createStyles = (C) => StyleSheet.create({
   // Bottom nav
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: C.surface,
+    height: 120,
+    backgroundColor: '#0E1326',
     borderTopWidth: 1,
-    borderTopColor: C.border,
-    paddingBottom: 24,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 48,
     paddingTop: 10,
     justifyContent: 'space-evenly',
     alignItems: 'center',
@@ -894,8 +839,19 @@ const createStyles = (C) => StyleSheet.create({
     borderWidth: 1,
     borderColor: ACCENT_TINT,
   },
-  navLabel: { fontSize: 10, color: C.muted, fontWeight: '500' },
-  navLabelActive: { color: C.blueLight, fontWeight: '600' },
+  navAlertDot: {
+    position: 'absolute',
+    top: 5,
+    right: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#0E1326',
+  },
+  navLabel: { fontSize: 10, color: '#94A3B8', fontWeight: '500' },
+  navLabelActive: { color: '#00BBFF', fontWeight: '600' },
 
   popupBackdrop: {
     flex: 1,
@@ -993,21 +949,6 @@ const createStyles = (C) => StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
-  statusTitle: { color: C.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  statusSub:   { color: C.muted, fontSize: 12, lineHeight: 17 },
-
-  // ── Integration Hub card ───────────────────────────────────────────────
-  integrationCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: C.card,
-    borderRadius: 10,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginBottom: 16,
-  },
-  integrationCardTitle: { color: C.text, fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  integrationCardSub:   { color: C.muted, fontSize: 12, lineHeight: 17 },
+  statusTitle: { color: '#F8FAFC', fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  statusSub:   { color: '#94A3B8', fontSize: 12, lineHeight: 17 },
 });
