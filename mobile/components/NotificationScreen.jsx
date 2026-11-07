@@ -82,12 +82,14 @@ export default function NotificationScreen({ user }) {
                 // Listen for the LoginAttemptBroadcast event
                 channel.bind('LoginAttemptBroadcast', (data) => {
                     if (cancelled) return;
+                    if (data.user_id && Number(data.user_id) !== Number(user.id)) return;
 
+                    const incomingId = data.id ?? data.event_id;
                     // Prepend the new pending event to the list instantly
                     setPending((prev) => {
-                        const alreadyExists = prev.some((e) => e.id === data.event_id || e.id === data.id);
+                        const alreadyExists = prev.some((e) => (e.id ?? e.event_id) === incomingId);
                         if (alreadyExists) return prev;
-                        return [data, ...prev];
+                        return [{ ...data, id: incomingId }, ...prev];
                     });
                 });
             } catch (err) {
@@ -115,18 +117,26 @@ export default function NotificationScreen({ user }) {
         return () => clearInterval(interval);
     }, [load]);
 
-    const respond = async (eventId, decision) => {
+    const [respondingId, setRespondingId] = useState(null);
+
+    const respond = async (event, decision) => {
+        const eventId = event?.id ?? event?.event_id;
+        if (!eventId || respondingId) return;
+
+        setRespondingId(eventId);
+        // Optimistically remove from pending and prepend to history
+        setPending(prev => prev.filter(e => (e.id ?? e.event_id) !== eventId));
+        setHistory(prev => [{ ...event, id: eventId, status: decision }, ...prev]);
+
         try {
             await integrationApi.respond(eventId, decision);
-            setPending(prev => prev.filter(e => e.id !== eventId));
-            // Refresh history
-            load();
-            Alert.alert(
-                decision === 'approved' ? '✅ Approved' : '❌ Declined',
-                `Login attempt ${decision}.`
-            );
+            const h = await integrationApi.history();
+            setHistory(h.data);
         } catch {
+            load();
             Alert.alert('Error', 'Could not submit response.');
+        } finally {
+            setRespondingId(null);
         }
     };
 
@@ -179,10 +189,18 @@ export default function NotificationScreen({ user }) {
                 </View>
             </View>
             <View style={styles.approvalActions}>
-                <TouchableOpacity style={styles.btnApprove} onPress={() => respond(e.id, 'approved')}>
+                <TouchableOpacity
+                    style={styles.btnApprove}
+                    disabled={respondingId === (e.id ?? e.event_id)}
+                    onPress={() => respond(e, 'approved')}
+                >
                     <Text style={styles.btnApproveText}>✓ Approve</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.btnDecline} onPress={() => respond(e.id, 'declined')}>
+                <TouchableOpacity
+                    style={styles.btnDecline}
+                    disabled={respondingId === (e.id ?? e.event_id)}
+                    onPress={() => respond(e, 'declined')}
+                >
                     <Text style={styles.btnDeclineText}>✕ Decline</Text>
                 </TouchableOpacity>
             </View>
@@ -221,13 +239,6 @@ export default function NotificationScreen({ user }) {
         );
     };
 
-    // WebSocket status indicator dot
-    const wsDot = wsStatus === 'connected'
-        ? { color: '#22C55E', label: '⬤ Live' }
-        : wsStatus === 'disconnected'
-            ? { color: '#EF4444', label: '⬤ Offline' }
-            : { color: '#EAB308', label: '⬤ Connecting' };
-
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -238,8 +249,6 @@ export default function NotificationScreen({ user }) {
                     </View>
                 )}
                 <View style={{ flex: 1 }} />
-                {/* Real-time status indicator */}
-                <Text style={[styles.wsIndicator, { color: wsDot.color }]}>{wsDot.label}</Text>
                 <TouchableOpacity
                     style={styles.refreshBtn}
                     onPress={() => { setRefreshing(true); load(); }}

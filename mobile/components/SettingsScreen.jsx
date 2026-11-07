@@ -1,31 +1,53 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, Image,
+  ScrollView, Switch, Alert,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useTheme } from '../src/theme/ThemeContext';
 
-function Row({ icon, label, value, danger, onPress, styles }) {
+function Row({ icon, label, value, danger, onPress, rightElement, styles }) {
   return (
     <TouchableOpacity
       style={styles.row}
       onPress={onPress}
+      disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <View style={styles.rowIconWrap}>
+        <Feather name={icon} size={18} color={danger ? '#F87171' : '#4063D7'} strokeWidth={1.75} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={[styles.rowLabel, danger && { color: '#F87171' }]}>{label}</Text>
         {!!value && <Text style={styles.rowValue}>{value}</Text>}
       </View>
-      {onPress && <Text style={styles.rowChevron}>›</Text>}
+      {rightElement ?? (onPress && <Feather name="chevron-right" size={18} color="#64748B" />)}
     </TouchableOpacity>
   );
 }
 
-export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenIntegrations, onOpenApprovals }) {
+export default function SettingsScreen({ user, onLoginPress, onLogout }) {
   const C = useTheme();
   const styles = useMemo(() => createStyles(C), [C]);
   const isLoggedIn = !!user;
+  const [biometricLock, setBiometricLock] = useState(true);
+  const [autoLockTimer, setAutoLockTimer] = useState('5 minutes');
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('');
+  };
+
+  const handleCycleAutoLock = () => {
+    const options = ['Immediately', '1 minute', '5 minutes', '15 minutes'];
+    const nextIndex = (options.indexOf(autoLockTimer) + 1) % options.length;
+    setAutoLockTimer(options[nextIndex]);
+  };
 
   return (
     <ScrollView
@@ -40,64 +62,102 @@ export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenInt
 
       {isLoggedIn ? (
         <>
-          {/* Profile card */}
-          <View style={styles.profileCard}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user.name ? user.name[0].toUpperCase() : '?'}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.profileName}>{user.name}</Text>
-              <Text style={styles.profileEmail}>{user.email}</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>🔐 Authenticated</Text>
+          {/* Profile Section */}
+          <Text style={styles.sectionLabel}>Profile</Text>
+          <View style={styles.card}>
+            <View style={styles.profileRow}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials(user.name)}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileName}>{user.name || 'User'}</Text>
+                <Text style={styles.profileEmail}>{user.email || 'user@securets.io'}</Text>
               </View>
             </View>
-          </View>
-
-          {/* Account section */}
-          <Text style={styles.sectionLabel}>ACCOUNT</Text>
-          <View style={styles.card}>
-            <Row icon="🔗" label="Integration Hub" value="Manage connected apps" onPress={onOpenIntegrations} styles={styles} />
             <View style={styles.divider} />
-            <Row icon="🔔" label="Login Approvals" value="Approve / decline logins on this device" onPress={onOpenApprovals} styles={styles} />
+            <Row
+              icon="key"
+              label="Change Password"
+              value="Update your account password"
+              onPress={() => Alert.alert('Change Password', 'Password management is handled via your web security portal.')}
+              styles={styles}
+            />
           </View>
 
-          {/* App section */}
-          <Text style={styles.sectionLabel}>APP</Text>
+          {/* Preferences Section */}
+          <Text style={styles.sectionLabel}>Preferences</Text>
           <View style={styles.card}>
-            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" styles={styles} />
+            <Row
+              icon="shield"
+              label="Biometric App Lock"
+              value="Require Face ID / fingerprint on launch"
+              rightElement={
+                <Switch
+                  value={biometricLock}
+                  onValueChange={setBiometricLock}
+                  trackColor={{ false: 'rgba(255,255,255,0.12)', true: '#4063D7' }}
+                  thumbColor="#FFFFFF"
+                />
+              }
+              styles={styles}
+            />
             <View style={styles.divider} />
-            <Row icon="🌐" label="Backend" value="Laravel + Supabase" styles={styles} />
+            <Row
+              icon="clock"
+              label="Auto-Lock Timer"
+              value={autoLockTimer}
+              onPress={handleCycleAutoLock}
+              styles={styles}
+            />
           </View>
 
-          {/* Logout */}
+          {/* Log Out */}
           <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.8}>
-            <Text style={styles.logoutText}>⏻  Sign Out</Text>
+            <Feather name="log-out" size={16} color="#F87171" style={{ marginRight: 8 }} />
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </>
       ) : (
         <>
           {/* Guest card */}
           <View style={styles.guestCard}>
-            <Text style={{ fontSize: 52, marginBottom: 16 }}>👤</Text>
+            <View style={styles.avatar}>
+              <Feather name="user" size={24} color="#FFFFFF" />
+            </View>
             <Text style={styles.guestTitle}>You're not signed in</Text>
             <Text style={styles.guestSub}>
-              Sign in to access your Integration Hub, TOTP codes,
-              and login approval notifications.
+              Sign in to manage your profile, connected apps, and security preferences.
             </Text>
             <TouchableOpacity style={styles.signInBtn} onPress={onLoginPress} activeOpacity={0.85}>
               <Text style={styles.signInText}>Sign In to SecureTS</Text>
             </TouchableOpacity>
           </View>
 
-          {/* App info even for guests */}
-          <Text style={styles.sectionLabel}>APP</Text>
+          {/* Preferences Section */}
+          <Text style={styles.sectionLabel}>Preferences</Text>
           <View style={styles.card}>
-            <Row icon="🛡️" label="SecureTS ThreatShield" value="Version 1.0.0" styles={styles} />
+            <Row
+              icon="shield"
+              label="Biometric App Lock"
+              value="Require Face ID / fingerprint on launch"
+              rightElement={
+                <Switch
+                  value={biometricLock}
+                  onValueChange={setBiometricLock}
+                  trackColor={{ false: 'rgba(255,255,255,0.12)', true: '#4063D7' }}
+                  thumbColor="#FFFFFF"
+                />
+              }
+              styles={styles}
+            />
             <View style={styles.divider} />
-            <Row icon="🌐" label="Backend" value="Laravel + Supabase" styles={styles} />
+            <Row
+              icon="clock"
+              label="Auto-Lock Timer"
+              value={autoLockTimer}
+              onPress={handleCycleAutoLock}
+              styles={styles}
+            />
           </View>
         </>
       )}
@@ -105,80 +165,81 @@ export default function SettingsScreen({ user, onLoginPress, onLogout, onOpenInt
   );
 }
 
-const createStyles = (C) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+const createStyles = () => StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0E1326' },
   content: { paddingBottom: 48 },
 
   header: {
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
-    backgroundColor: C.surface,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+    backgroundColor: '#0E1326',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: C.text },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#F8FAFC' },
 
-  // ── Profile card ──
-  profileCard: {
+  // ── Profile row ──
+  profileRow: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    margin: 20, padding: 20,
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    padding: 18,
   },
   avatar: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: C.blue,
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#4063D7',
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText:   { color: '#fff', fontSize: 22, fontWeight: '800' },
-  profileName:  { color: C.text, fontSize: 16, fontWeight: '700' },
-  profileEmail: { color: C.muted, fontSize: 13, marginTop: 2 },
-  badge: {
-    marginTop: 6, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(61,90,241,0.15)',
-    borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3,
-  },
-  badgeText: { color: '#818CF8', fontSize: 11, fontWeight: '600' },
+  avatarText:   { color: '#FFFFFF', fontSize: 18, fontWeight: '800', letterSpacing: 0.5 },
+  profileName:  { color: '#F8FAFC', fontSize: 16, fontWeight: '700' },
+  profileEmail: { color: '#94A3B8', fontSize: 13, marginTop: 2 },
 
   // ── Section ──
   sectionLabel: {
-    color: C.muted, fontSize: 11, fontWeight: '700',
-    letterSpacing: 1, marginHorizontal: 20, marginBottom: 8, marginTop: 20,
+    color: '#94A3B8', fontSize: 11, fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1, marginHorizontal: 20, marginBottom: 8, marginTop: 24,
   },
   card: {
-    marginHorizontal: 20, backgroundColor: C.card,
-    borderRadius: 14, borderWidth: 1, borderColor: C.border, overflow: 'hidden',
+    marginHorizontal: 20, backgroundColor: '#1C2236',
+    borderRadius: 14, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', overflow: 'hidden',
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
     padding: 16, gap: 12,
   },
-  rowIcon:    { fontSize: 20 },
-  rowLabel:   { color: C.text, fontSize: 14, fontWeight: '600' },
-  rowValue:   { color: C.muted, fontSize: 12, marginTop: 2 },
-  rowChevron: { color: C.muted, fontSize: 20 },
-  divider:    { height: 1, backgroundColor: C.border, marginLeft: 52 },
-
-  // ── Logout ──
-  logoutBtn: {
-    margin: 20, marginTop: 28,
-    backgroundColor: 'rgba(239,68,68,0.1)',
-    borderWidth: 1, borderColor: 'rgba(239,68,68,0.25)',
-    borderRadius: 12, padding: 16, alignItems: 'center',
+  rowIconWrap: {
+    width: 36, height: 36, borderRadius: 8,
+    backgroundColor: '#0E1326',
+    borderWidth: 1, borderColor: 'rgba(64, 99, 215, 0.25)',
+    alignItems: 'center', justifyContent: 'center',
   },
-  logoutText: { color: '#F87171', fontSize: 15, fontWeight: '700' },
+  rowLabel:   { color: '#F8FAFC', fontSize: 14, fontWeight: '600' },
+  rowValue:   { color: '#94A3B8', fontSize: 12, marginTop: 2 },
+  divider:    { height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', marginLeft: 64 },
+
+  // ── Log Out ──
+  logoutBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 20, marginTop: 28,
+    backgroundColor: 'transparent',
+    borderWidth: 1, borderColor: 'rgba(248, 113, 113, 0.35)',
+    borderRadius: 12, paddingVertical: 14, paddingHorizontal: 16,
+  },
+  logoutText: { color: '#F87171', fontSize: 15, fontWeight: '600' },
 
   // ── Guest ──
   guestCard: {
     margin: 20, padding: 32,
-    backgroundColor: C.card, borderRadius: 20,
-    borderWidth: 1, borderColor: C.border,
+    backgroundColor: '#1C2236', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
   },
-  guestTitle: { color: C.text, fontSize: 20, fontWeight: '800', marginBottom: 10 },
+  guestTitle: { color: '#F8FAFC', fontSize: 18, fontWeight: '700', marginTop: 14, marginBottom: 8 },
   guestSub: {
-    color: C.muted, fontSize: 14, textAlign: 'center', lineHeight: 22, marginBottom: 24,
+    color: '#94A3B8', fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 22,
   },
   signInBtn: {
-    backgroundColor: C.blue, borderRadius: 12,
-    paddingVertical: 14, paddingHorizontal: 32, alignItems: 'center',
+    backgroundColor: '#4063D7', borderRadius: 10,
+    paddingVertical: 13, paddingHorizontal: 32, alignItems: 'center',
   },
-  signInText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  signInText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
 });
