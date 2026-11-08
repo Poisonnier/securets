@@ -1,22 +1,61 @@
-# SecureTS
+# SecureThreatShield (SecureTS)
 
-SecureTS is a Laravel + Livewire + React Native application for per-user Integration Hub with MFA, push approval notifications, device registration, and login history.
+SecureTS is a multi-factor authentication platform that protects user accounts in third-party **Target Apps**. A Target App sends an access request to SecureTS. SecureTS pushes a real-time approval prompt to the user's registered mobile device, the user approves or denies it, and SecureTS returns the decision to the Target App. For offline or fallback verification, SecureTS also issues time-based one-time passwords (TOTP).
 
----
+The repository contains two applications:
 
-## Team Local Setup
-
-Each developer runs the backend on their **own machine**. The mobile app connects to whoever's machine is running the server on the local Wi-Fi network.
-
-### Prerequisites
-- PHP 8.3+
-- Composer
-- Node.js 20+
-- Expo Go app on your phone (same Wi-Fi as your PC)
+| Path      | Application                                         |
+| --------- | --------------------------------------------------- |
+| `/`       | Web dashboard and API (Laravel + Livewire)          |
+| `/mobile` | Authenticator app (React Native + Expo)             |
 
 ---
 
-### 1. Clone & Install Dependencies
+## Core Features
+
+- **Push Login Approvals:** Real-time approve/deny prompts sent to the registered device over Laravel Reverb WebSockets and Expo push notifications.
+- **TOTP Authenticator:** RFC 6238 time-based one-time passwords (via `pragmarx/google2fa`) as a second factor and offline fallback.
+- **Integration Hub:** Each user can register Target Apps and get an Integration ID and API Secret for each one.
+- **Device Registration:** Device binding with setup tokens and per-device Instance Tokens.
+- **Login History:** An audit trail of every access request and its result.
+- **Subscriptions:** Stripe-backed plan tiers (Pro, Ultra, Ultra Plus).
+
+---
+
+## Tech Stack
+
+### Backend & Web
+- **Laravel 13** (PHP 8.3+), with Sanctum for API token authentication
+- **Livewire 4** + **Blaze** for server-driven UI
+- **Tailwind CSS** for styling, built with Vite
+- **Laravel Reverb** for real-time WebSocket broadcasting
+- **Pest 5**, **Larastan**, and **Laravel Pint** for testing, static analysis, and formatting
+
+### Mobile
+- **React Native** + **Expo** (SDK 58)
+- `expo-secure-store` for credential storage
+- `expo-notifications` for push approvals
+- `pusher-js` for the Reverb WebSocket client
+- `axios` as the HTTP client
+
+### Data
+- **Supabase (PostgreSQL)** for shared team and staging environments
+- **SQLite** for zero-config local development
+
+---
+
+## Prerequisites
+
+- PHP 8.3+ and Composer
+- Node.js 20+ and npm
+- The Expo Go app on a physical device, or an Android/iOS simulator
+- The phone and the development machine on the same network (or connected through Tailscale)
+
+---
+
+## Web Setup
+
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/kentjohnllanita8978-oss/secure-hub.git securets
@@ -25,79 +64,41 @@ composer install
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Configure the environment
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-Then open `.env` and fill in the Supabase database credentials (ask your team lead for these).
+**Option A — SQLite (recommended for solo local development):**
 
-### 3. Run Migrations
+```env
+DB_CONNECTION=sqlite
+```
+
+```bash
+touch database/database.sqlite
+```
+
+**Option B — Supabase (shared team database):** Fill in the `DB_*` credentials in `.env`. Get them from your team lead. Never commit them.
+
+### 3. Migrate
 
 ```bash
 php artisan migrate
 ```
 
-### 4. Start the Backend
+### 4. Configure Reverb
 
-Run all services with one command:
+Use port **8085** to avoid conflicts with a local Apache on 8080:
 
-```bash
-composer run dev
-```
-
-This starts the Laravel server, Reverb WebSocket, queue worker, and Vite asset server together.
-
-The web app will be at `http://localhost:8000`.
-
----
-
-### 5. Configure the Mobile App
-
-```bash
-cd mobile
-cp .env.example .env
-```
-
-Open `mobile/.env` and set `EXPO_PUBLIC_API_URL` to **your machine's local IP address**:
-
-**Find your LAN IP:**
-- **Windows:** Run `ipconfig` in a terminal → look for **IPv4 Address** (e.g. `192.168.1.42`)
-- **macOS/Linux:** Run `ifconfig` → look for `inet` under your Wi-Fi adapter
-
-Then set:
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.x.x:8000/api
-EXPO_PUBLIC_REVERB_HOST=192.168.x.x
-EXPO_PUBLIC_REVERB_PORT=8085
-EXPO_PUBLIC_REVERB_SCHEME=http
+REVERB_PORT=8085
+REVERB_SERVER_PORT=8085
 ```
 
-> ⚠️ Your phone must be on the **same Wi-Fi network** as your PC.
->
-> 💡 Port **8085**, not 8080 — 8080 commonly collides with a local Apache. This
-> must match `REVERB_PORT` / `REVERB_SERVER_PORT` in the Laravel `.env`.
-
-### 6. Start the Mobile App
-
-```bash
-cd mobile
-npm start
-```
-
-`npm start` first runs `scripts/detect-lan-ip.js`, which rewrites
-`EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_REVERB_HOST` with this machine's current
-LAN IP, then launches Expo. Scan the QR code with Expo Go on your phone.
-
-If your phone is on a **different network** (mobile data, or another Wi-Fi),
-`npm run start:tailscale` points the app at this machine's Tailscale IP instead.
-See `mobile/.env.example` for the details.
-
-### 7. Configure Stripe (subscriptions only)
-
-The subscription screens read these from the backend `.env`:
+### 5. Configure Stripe (optional; needed only for subscriptions)
 
 ```env
 STRIPE_KEY=pk_test_...
@@ -108,24 +109,73 @@ STRIPE_PRICE_ULTRA=price_...
 STRIPE_PRICE_ULTRA_PLUS=price_...
 ```
 
-Leave `STRIPE_WEBHOOK_SECRET` empty in local development — signature
-verification is skipped, and the payment result page upgrades the plan
-directly. Set it only when forwarding events with `stripe listen`.
+Leave `STRIPE_WEBHOOK_SECRET` empty during local development. Set it only when you forward events with `stripe listen`.
+
+### 6. Run
+
+```bash
+composer run dev
+```
+
+This starts the Laravel server (`:8000`), Reverb (`:8085`), the queue worker, and Vite together. Open `http://localhost:8000`.
+
+---
+
+## Mobile Setup
+
+### 1. Install
+
+```bash
+cd mobile
+npm install
+cp .env.example .env
+```
+
+### 2. Configure
+
+```env
+EXPO_PUBLIC_API_URL=http://192.168.x.x:8000/api
+EXPO_PUBLIC_REVERB_HOST=192.168.x.x
+EXPO_PUBLIC_REVERB_PORT=8085
+EXPO_PUBLIC_REVERB_SCHEME=http
+```
+
+You usually don't need to edit these by hand, because `npm start` detects your LAN IP and writes it in automatically.
+
+### 3. Run
+
+```bash
+npm start              # Same Wi-Fi network as the backend
+npm run start:tailscale  # Different network (uses the Tailscale IP)
+npm run android        # Android emulator
+npm run ios            # iOS simulator
+```
+
+Scan the QR code with Expo Go.
 
 ---
 
 ## Useful Commands
 
 ```bash
-# Run all services (server + reverb + queue + vite)
-composer run dev
-
-# Run tests
-php artisan test
-
-# Format code
-php artisan pint
-
-# Build frontend assets
-npm run build
+composer run dev        # All backend services
+composer test           # Pint check + PHPStan + Pest
+composer lint           # Auto-format with Pint
+composer types:check    # PHPStan / Larastan
+php artisan test        # Pest only
+npm run build           # Production web assets
 ```
+
+---
+
+## Documentation
+
+- [Product Requirements](PRD.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [AI Agent Guide](AGENTS.md)
+
+## License
+
+Released under the [MIT License](LICENSE). © 2026 Nathan G. Abrenica.

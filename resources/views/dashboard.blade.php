@@ -1,166 +1,168 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Dashboard – SecureThreatShield</title>
-    <meta name="description" content="SecureThreatShield Dashboard – threat protection overview.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@extends('layouts.app', ['activeNav' => 'dashboard'])
 
-        :root {
-            --brand-blue: #3D5AF1;
-            --brand-dark: #0F172A;
-            --brand-mid:  #1E293B;
-            --brand-border: rgba(255,255,255,0.08);
-            --text-primary: #F8FAFC;
-            --text-muted: #94A3B8;
-        }
+@section('title', 'Dashboard – SecureThreatShield')
+@section('description', 'SecureThreatShield Dashboard – threat protection overview.')
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--brand-dark);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
+@section('content')
+    @php
+        $connectedAppsCount = $connectedAppsCount ?? Auth::user()?->integrations()->count() ?? 0;
+        $recentLoginRequests = $recentLoginRequests ?? Auth::user()?->loginEvents()->with('integration')->latest()->limit(5)->get() ?? collect();
+    @endphp
 
-        @include('account.navigation-styles')
-
-        /* ── Content ── */
-        .content { padding: 48px 40px; max-width: 1100px; margin: 0 auto; }
-
-        .page-header { margin-bottom: 36px; }
-        .page-header h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 6px;
-        }
-        .page-header p { font-size: 14px; color: var(--text-muted); }
-
-        /* ── Stat cards ── */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 36px;
-        }
-        .stat-card {
-            background: var(--brand-mid);
-            border: 1px solid var(--brand-border);
-            border-radius: 14px;
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        }
-        .stat-card.blue::before   { background: var(--brand-blue); }
-        .stat-card.green::before  { background: #22C55E; }
-        .stat-card.yellow::before { background: #EAB308; }
-        .stat-card.red::before    { background: #EF4444; }
-        .stat-label {
-            font-size: 12px; font-weight: 500;
-            color: var(--text-muted); margin-bottom: 10px;
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .stat-value { font-size: 26px; font-weight: 800; }
-        .stat-card.blue   .stat-value { color: #818CF8; }
-        .stat-card.green  .stat-value { color: #4ADE80; }
-        .stat-card.yellow .stat-value { color: #FACC15; }
-        .stat-card.red    .stat-value { color: #F87171; }
-
-        /* ── Status panel ── */
-        .status-panel {
-            background: var(--brand-mid);
-            border: 1px solid var(--brand-border);
-            border-radius: 14px;
-            padding: 28px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .status-icon {
-            width: 56px; height: 56px;
-            background: rgba(34,197,94,0.15);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .status-text h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .status-text p  { font-size: 14px; color: var(--text-muted); }
-    </style>
-</head>
-<body>
-
-<!-- ── Navbar ── -->
-@include('account.navigation', ['activeNav' => 'dashboard'])
-@include('account.profile-menu')
-
-<!-- ── Main Content ── -->
-<div class="content">
-    <div class="page-header">
-        <h1>Welcome to your dashboard! 👋</h1>
-        <p>Here's your SecureThreatShield protection overview.</p>
-    </div>
-
-    <div class="stats-grid">
-        <div class="stat-card blue">
-            <div class="stat-label">Protection Status</div>
-            <div class="stat-value">{{ $protectionStatus }}</div>
+    {{-- Page Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-gray-700/50">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">Workspace Overview</span>
+            </div>
+            <h1 class="text-xl font-semibold text-white tracking-tight mt-1">Developer Dashboard</h1>
+            <p class="text-xs text-slate-400 mt-1">Real-time authentication telemetry, connected application gates, and verification events.</p>
         </div>
-        <div class="stat-card green">
-            <div class="stat-label">Threats Blocked</div>
-            <div class="stat-value">{{ $threatsBlocked }}</div>
-        </div>
-        <div class="stat-card yellow">
-            <div class="stat-label">Auth Latency</div>
-            <div class="stat-value">&lt;500ms</div>
-        </div>
-        <div class="stat-card red">
-            <div class="stat-label">Alerts</div>
-            <div class="stat-value">{{ $alertsCount }}</div>
+
+        <div class="flex items-center gap-2.5">
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#1C2236] border border-gray-700/50 text-xs font-mono text-slate-300">
+                <span class="w-2 h-2 rounded-full {{ ($protectionStatus ?? 'Standby') === 'Active' ? 'bg-emerald-400' : 'bg-amber-400' }}"></span>
+                Status: {{ $protectionStatus ?? 'Standby' }}
+            </span>
         </div>
     </div>
 
-    <div class="status-panel">
-        <div class="status-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="{{ $pendingAlertsCount > 0 ? '#EAB308' : '#22C55E' }}" stroke-width="2.5"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
-            </svg>
+    {{-- Minimalist Metric Cards --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">Connected Apps</span>
+                <span class="text-[11px] font-mono text-[#00BBFF]">GATE</span>
+            </div>
+            <div class="text-2xl font-mono font-semibold text-white">{{ $connectedAppsCount }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Active protection status: <span class="text-slate-200 font-mono">{{ $protectionStatus }}</span></p>
         </div>
-        <div class="status-text">
-            @if ($pendingAlertsCount > 0)
-                <h2 style="color:#FACC15">{{ $pendingAlertsCount }} Pending Approval{{ $pendingAlertsCount === 1 ? '' : 's' }}</h2>
-                <p>Review waiting login attempt{{ $pendingAlertsCount === 1 ? '' : 's' }} on your SecureTS mobile app.</p>
-            @else
-                <h2 style="color:#4ADE80">All Systems Operational</h2>
-                <p>ThreatShield is actively monitoring your account. No pending threats detected.</p>
-            @endif
+
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">Pending Approvals</span>
+                <span class="text-[11px] font-mono text-amber-400">QUEUE</span>
+            </div>
+            <div class="text-2xl font-mono font-semibold text-white">{{ $pendingAlertsCount }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Awaiting mobile push response</p>
+        </div>
+
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">Threats Blocked</span>
+                <span class="text-[11px] font-mono text-emerald-400">DEFENSE</span>
+            </div>
+            <div class="text-2xl font-mono font-semibold text-white">{{ $threatsBlocked }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Declined out-of-band challenges</p>
+        </div>
+
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-5">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-medium text-slate-400">Total Login Events</span>
+                <span class="text-[11px] font-mono text-slate-400">&lt;500ms</span>
+            </div>
+            <div class="text-2xl font-mono font-semibold text-white">{{ $alertsCount }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Recorded verification requests</p>
         </div>
     </div>
 
-    <a href="{{ route('integrations') }}" class="status-panel" style="text-decoration:none;color:inherit;margin-top:16px;display:flex">
-        <div class="status-icon" style="background:rgba(61,90,241,0.12)">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
+    {{-- System Operational Banner Card --}}
+    <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-start sm:items-center gap-3.5">
+            <div class="w-9 h-9 rounded-md bg-[#0E1326] border border-gray-700/50 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                     stroke="{{ $pendingAlertsCount > 0 ? '#FACC15' : '#00BBFF' }}"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+            </div>
+            <div>
+                @if ($pendingAlertsCount > 0)
+                    <h2 class="text-sm font-semibold text-amber-300">
+                        {{ $pendingAlertsCount }} Pending Approval{{ $pendingAlertsCount === 1 ? '' : 's' }}
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Review waiting login attempt{{ $pendingAlertsCount === 1 ? '' : 's' }} on your SecureTS mobile authenticator.
+                    </p>
+                @else
+                    <h2 class="text-sm font-semibold text-white">All Systems Operational</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        ThreatShield is actively monitoring your account. No pending threats detected.
+                    </p>
+                @endif
+            </div>
         </div>
-        <div class="status-text">
-            <h2>Integration Hub</h2>
-            <p>Connect an external app’s login page, get a secret key, and manage apps for this account. Approve or decline logins on the mobile app.</p>
-        </div>
-    </a>
-</div>
 
-</body>
-</html>
+        <div class="flex items-center gap-2 shrink-0">
+            <span class="text-[11px] font-mono text-slate-400 bg-[#0E1326] border border-gray-700/50 px-2.5 py-1 rounded-md">
+                Auth Latency: <span class="text-[#00BBFF]">&lt;500ms</span>
+            </span>
+        </div>
+    </div>
+
+    {{-- Recent Login Requests Table Card --}}
+    <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-700/50 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-semibold text-white">Recent Login Requests</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Latest authentication challenges and session verification logs.</p>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">
+                Showing {{ $recentLoginRequests->count() }} event{{ $recentLoginRequests->count() === 1 ? '' : 's' }}
+            </span>
+        </div>
+
+        @if ($recentLoginRequests->isEmpty())
+            <div class="px-5 py-10 text-center">
+                <p class="text-xs font-mono text-slate-400">No login verification requests recorded yet.</p>
+                <p class="text-[11px] text-slate-500 mt-1">Events will stream here as users authenticate through your application gates.</p>
+            </div>
+        @else
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-gray-700/50 bg-[#0E1326]/50 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                            <th class="py-2.5 px-5 font-medium">Application</th>
+                            <th class="py-2.5 px-5 font-medium">Identifier</th>
+                            <th class="py-2.5 px-5 font-medium">IP / Origin</th>
+                            <th class="py-2.5 px-5 font-medium">Status</th>
+                            <th class="py-2.5 px-5 font-medium text-right">Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50 text-xs">
+                        @foreach ($recentLoginRequests as $event)
+                            <tr class="hover:bg-[#0E1326]/40 transition-colors">
+                                <td class="py-3 px-5 font-medium text-white">
+                                    {{ $event->integration?->app_name ?? $event->app_name ?? 'External Application' }}
+                                </td>
+                                <td class="py-3 px-5 font-mono text-slate-300">
+                                    {{ $event->username ?? $event->email ?? '—' }}
+                                </td>
+                                <td class="py-3 px-5 font-mono text-slate-400">
+                                    {{ $event->ip_address ?? '—' }}
+                                </td>
+                                <td class="py-3 px-5">
+                                    @php
+                                        $status = strtolower($event->status ?? 'pending');
+                                        $badgeClasses = match ($status) {
+                                            'approved' => 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+                                            'declined' => 'bg-red-500/10 text-red-300 border-red-500/30',
+                                            default    => 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+                                        };
+                                    @endphp
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono border {{ $badgeClasses }}">
+                                        {{ $status }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-5 font-mono text-slate-400 text-right">
+                                    {{ $event->created_at?->diffForHumans() ?? '—' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+@endsection

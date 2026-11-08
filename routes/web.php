@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function () {
         // Integrations CRUD
         Route::get('/integrations-data', [IntegrationController::class, 'integrationsData']);
         Route::post('/integrations', [IntegrationController::class, 'store']);
+        Route::patch('/integrations/{integration}', [IntegrationController::class, 'update']);
         Route::delete('/integrations/{integration}', [IntegrationController::class, 'destroy']);
         Route::patch('/integrations/{integration}/toggle', [IntegrationController::class, 'toggle']);
         Route::get('/integrations/{integration}/totp', [IntegrationController::class, 'totpCode']);
