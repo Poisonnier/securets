@@ -201,7 +201,6 @@ class SubscriptionController extends Controller
         }
 
         try {
-            // @phpstan-ignore-next-line
             $session = $this->stripe()->billingPortal->sessions->create([
                 'customer' => $customerId,
                 'return_url' => $isApi ? url('/') : route('subscription'),
