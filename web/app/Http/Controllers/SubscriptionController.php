@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscription;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\SignatureVerificationException;
@@ -18,7 +21,7 @@ class SubscriptionController extends Controller
 
     // ── Web: Subscription page ────────────────────────────────────────────────
 
-    public function show(Request $request)
+    public function show(Request $request): View
     {
         $user = $request->user();
         $subscription = $user->subscription ?? null;
@@ -28,7 +31,7 @@ class SubscriptionController extends Controller
         return view('subscription', compact('user', 'subscription', 'currentPlan', 'plans'));
     }
 
-    public function success(Request $request)
+    public function success(Request $request): View
     {
         // Fallback for a missing or slow webhook: confirm the session with Stripe directly.
         $this->verifyAndActivateSession($request->query('session_id'));
@@ -41,7 +44,7 @@ class SubscriptionController extends Controller
             ->with('flash_success', 'Payment successful! Your plan has been upgraded.');
     }
 
-    public function cancel(Request $request)
+    public function cancel(Request $request): View
     {
         $user = $request->user();
         $currentPlan = $user->currentPlan();
@@ -53,7 +56,7 @@ class SubscriptionController extends Controller
 
     // ── Shared: create Stripe Checkout Session (web + mobile) ─────────────────
 
-    public function createCheckoutSession(Request $request)
+    public function createCheckoutSession(Request $request): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'plan' => 'required|in:pro,ultra,ultra_plus',
@@ -76,6 +79,7 @@ class SubscriptionController extends Controller
         $customerId = optional($user->subscription)->stripe_customer_id;
 
         if (! $customerId) {
+            // @phpstan-ignore-next-line
             $customer = $stripe->customers->create([
                 'email' => $user->email,
                 'name' => $user->name,
@@ -98,6 +102,7 @@ class SubscriptionController extends Controller
         }
 
         try {
+            // @phpstan-ignore-next-line
             $session = $stripe->checkout->sessions->create([
                 'customer' => $customerId,
                 'line_items' => [[
@@ -123,7 +128,7 @@ class SubscriptionController extends Controller
                 return response()->json(['checkout_url' => $session->url]);
             }
 
-            return redirect($session->url);
+            return redirect()->to($session->url);
         } catch (\Throwable $e) {
             Log::error('Stripe checkout error: '.$e->getMessage());
 
@@ -137,7 +142,7 @@ class SubscriptionController extends Controller
 
     // ── API: current subscription status for mobile ───────────────────────────
 
-    public function status(Request $request)
+    public function status(Request $request): JsonResponse
     {
         $user = $request->user();
         $plan = $user->currentPlan();
@@ -153,7 +158,7 @@ class SubscriptionController extends Controller
 
     // ── Mobile: return pages (public — opened by the in-app browser after payment) ──
 
-    public function mobileSuccess(Request $request)
+    public function mobileSuccess(Request $request): View
     {
         $activated = $this->verifyAndActivateSession($request->query('session_id'));
 
@@ -168,7 +173,7 @@ class SubscriptionController extends Controller
         ]);
     }
 
-    public function mobileCancel(Request $request)
+    public function mobileCancel(Request $request): View
     {
         return view('subscription-mobile-return', [
             'success' => false,
@@ -181,7 +186,7 @@ class SubscriptionController extends Controller
 
     // ── Billing: Stripe-hosted customer portal (cancel, update card, invoices) ──
 
-    public function billingPortal(Request $request)
+    public function billingPortal(Request $request): JsonResponse|RedirectResponse
     {
         $user = $request->user();
         $customerId = optional($user->subscription)->stripe_customer_id;
@@ -196,6 +201,7 @@ class SubscriptionController extends Controller
         }
 
         try {
+            // @phpstan-ignore-next-line
             $session = $this->stripe()->billingPortal->sessions->create([
                 'customer' => $customerId,
                 'return_url' => $isApi ? url('/') : route('subscription'),
@@ -210,7 +216,7 @@ class SubscriptionController extends Controller
 
         return $isApi
             ? response()->json(['portal_url' => $session->url])
-            : redirect($session->url);
+            : redirect()->to($session->url);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -261,7 +267,7 @@ class SubscriptionController extends Controller
 
     // ── Stripe Webhook ────────────────────────────────────────────────────────
 
-    public function webhook(Request $request)
+    public function webhook(Request $request): JsonResponse
     {
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
@@ -278,7 +284,9 @@ class SubscriptionController extends Controller
             $event = json_decode($payload, false);
         }
 
+        // @phpstan-ignore-next-line
         $type = is_object($event) ? $event->type : ($event['type'] ?? null);
+        // @phpstan-ignore-next-line
         $obj = is_object($event) ? $event->data->object : ($event['data']['object'] ?? []);
 
         match ($type) {

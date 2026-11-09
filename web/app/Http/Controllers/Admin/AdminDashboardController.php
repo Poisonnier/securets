@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\User;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,7 +15,7 @@ class AdminDashboardController extends Controller
     /**
      * Admin Dashboard: Account Recovery & Device Kill Switch Control Center
      */
-    public function dashboard(Request $request)
+    public function dashboard(Request $request): View
     {
         $user = Auth::user();
         $adminName = $user ? $user->name : 'Admin';
@@ -136,7 +138,7 @@ class AdminDashboardController extends Controller
     /**
      * Admin Security Notifications Center
      */
-    public function notifications(Request $request)
+    public function notifications(Request $request): View
     {
         $user = Auth::user();
         $adminName = $user ? $user->name : 'Admin';
@@ -204,7 +206,7 @@ class AdminDashboardController extends Controller
     /**
      * Admin Settings & Recovery Policies
      */
-    public function settings(Request $request)
+    public function settings(Request $request): View
     {
         $user = Auth::user();
         $adminName = $user ? $user->name : 'Admin';
@@ -217,7 +219,7 @@ class AdminDashboardController extends Controller
     /**
      * Generate an Emergency Recovery Bypass Code for a locked-out user
      */
-    public function generateBypassCode(Request $request)
+    public function generateBypassCode(Request $request): JsonResponse
     {
         $email = $request->input('email');
         $code = 'STS-'.rand(1000, 9999).'-'.strtoupper(substr(md5(uniqid()), 0, 2));
@@ -233,7 +235,7 @@ class AdminDashboardController extends Controller
     /**
      * Remote Kill Switch / Device Revocation
      */
-    public function lockdownDevice(Request $request)
+    public function lockdownDevice(Request $request): JsonResponse
     {
         $deviceId = $request->input('device_id');
         $deviceName = $request->input('device_name', 'Device');
@@ -247,7 +249,7 @@ class AdminDashboardController extends Controller
     /**
      * Save admin settings
      */
-    public function saveSettings(Request $request)
+    public function saveSettings(Request $request): JsonResponse
     {
         return response()->json([
             'status' => 'success',

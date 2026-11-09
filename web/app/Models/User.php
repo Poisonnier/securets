@@ -26,6 +26,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $archived_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Subscription|null $subscription
  */
 #[Fillable(['name', 'email', 'password', 'preferences', 'archived_at'])]
 #[Hidden(['password', 'remember_token'])]
@@ -95,6 +96,11 @@ class User extends Authenticatable
         return $this->hasMany(Device::class);
     }
 
+    /**
+     * @return HasOne<Subscription, User>
+     *
+     * @phpstan-return HasOne<Subscription, $this>
+     */
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class);
@@ -105,7 +111,7 @@ class User extends Authenticatable
      */
     public function currentPlan(): string
     {
-        return $this->subscription?->plan ?? 'free';
+        return $this->subscription->plan ?? 'free';
     }
 
     /**
