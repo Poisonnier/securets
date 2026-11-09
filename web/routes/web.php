@@ -54,26 +54,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/integrations/{integration}/totp', [IntegrationController::class, 'totpCode']);
 
         // Read-only history on web. Approve / decline stays on the mobile app.
-        Route::get('/login-events',                            [IntegrationController::class, 'history']);
-        Route::patch('/login-events/{event}/archive',          [IntegrationController::class, 'archiveEvent']);
-        Route::delete('/login-events/{event}',                 [IntegrationController::class, 'destroyEvent']);
+        Route::get('/login-events', [IntegrationController::class, 'history']);
+        Route::patch('/login-events/{event}/archive', [IntegrationController::class, 'archiveEvent']);
+        Route::delete('/login-events/{event}', [IntegrationController::class, 'destroyEvent']);
 
         // Subscription checkout (web AJAX)
         Route::post('/subscription/checkout', [SubscriptionController::class, 'createCheckoutSession'])->name('subscription.checkout');
         // Stripe-hosted billing portal (cancel / update card)
-        Route::post('/subscription/portal',   [SubscriptionController::class, 'billingPortal'])->name('subscription.portal');
+        Route::post('/subscription/portal', [SubscriptionController::class, 'billingPortal'])->name('subscription.portal');
     });
 
     // ── Subscription pages ────────────────────────────────────────────────────
-    Route::get('/subscription',         [SubscriptionController::class, 'show'])->name('subscription');
+    Route::get('/subscription', [SubscriptionController::class, 'show'])->name('subscription');
     Route::get('/subscription/success', [SubscriptionController::class, 'success'])->name('subscription.success');
-    Route::get('/subscription/cancel',  [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::get('/subscription/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
 });
 
 // ── Mobile return pages (public — the in-app browser has no web session) ──────
 Route::get('/subscription/mobile-success', [SubscriptionController::class, 'mobileSuccess'])->name('subscription.mobile-success');
-Route::get('/subscription/mobile-cancel',  [SubscriptionController::class, 'mobileCancel'])->name('subscription.mobile-cancel');
+Route::get('/subscription/mobile-cancel', [SubscriptionController::class, 'mobileCancel'])->name('subscription.mobile-cancel');
 
 // ── Admin Web Routes (folder: routes/admin/) ──────────────────────────────────
-require __DIR__ . '/admin/admin.php';
-
+require __DIR__.'/admin/admin.php';

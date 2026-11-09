@@ -6,9 +6,9 @@ return [
     | Stripe API Keys
     |--------------------------------------------------------------------------
     */
-    'key'             => env('STRIPE_KEY', ''),
-    'secret'          => env('STRIPE_SECRET', ''),
-    'webhook_secret'  => env('STRIPE_WEBHOOK_SECRET', ''),
+    'key' => env('STRIPE_KEY', ''),
+    'secret' => env('STRIPE_SECRET', ''),
+    'webhook_secret' => env('STRIPE_WEBHOOK_SECRET', ''),
 
     /*
     |--------------------------------------------------------------------------
@@ -16,8 +16,8 @@ return [
     |--------------------------------------------------------------------------
     */
     'prices' => [
-        'pro'        => env('STRIPE_PRICE_PRO', ''),
-        'ultra'      => env('STRIPE_PRICE_ULTRA', ''),
+        'pro' => env('STRIPE_PRICE_PRO', ''),
+        'ultra' => env('STRIPE_PRICE_ULTRA', ''),
         'ultra_plus' => env('STRIPE_PRICE_ULTRA_PLUS', ''),
     ],
 
@@ -27,9 +27,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'limits' => [
-        'free'       => 3,
-        'pro'        => 10,
-        'ultra'      => 20,
+        'free' => 3,
+        'pro' => 10,
+        'ultra' => 20,
         'ultra_plus' => null, // unlimited
     ],
 
@@ -40,28 +40,28 @@ return [
     */
     'plans' => [
         'free' => [
-            'label'       => 'Free',
+            'label' => 'Free',
             'price_label' => '$0 / month',
-            'limit'       => 3,
-            'color'       => '#64748B',
+            'limit' => 3,
+            'color' => '#64748B',
         ],
         'pro' => [
-            'label'       => 'Pro',
+            'label' => 'Pro',
             'price_label' => '$5 / month',
-            'limit'       => 10,
-            'color'       => '#3D5AF1',
+            'limit' => 10,
+            'color' => '#3D5AF1',
         ],
         'ultra' => [
-            'label'       => 'Ultra',
+            'label' => 'Ultra',
             'price_label' => '$10 / month',
-            'limit'       => 20,
-            'color'       => '#8B5CF6',
+            'limit' => 20,
+            'color' => '#8B5CF6',
         ],
         'ultra_plus' => [
-            'label'       => 'Ultra Plus',
+            'label' => 'Ultra Plus',
             'price_label' => '$50 / month',
-            'limit'       => null,
-            'color'       => '#F59E0B',
+            'limit' => null,
+            'color' => '#F59E0B',
         ],
     ],
 ];

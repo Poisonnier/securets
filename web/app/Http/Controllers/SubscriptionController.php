@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Subscription;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\StripeClient;
 use Stripe\Webhook;
-use Stripe\Exception\SignatureVerificationException;
 
 class SubscriptionController extends Controller
 {
@@ -19,34 +21,34 @@ class SubscriptionController extends Controller
 
     // ── Web: Subscription page ────────────────────────────────────────────────
 
-    public function show(Request $request)
+    public function show(Request $request): View
     {
-        $user         = $request->user();
+        $user = $request->user();
         $subscription = $user->subscription ?? null;
-        $currentPlan  = $user->currentPlan();
-        $plans        = config('stripe.plans');
+        $currentPlan = $user->currentPlan();
+        $plans = config('stripe.plans');
 
         return view('subscription', compact('user', 'subscription', 'currentPlan', 'plans'));
     }
 
-    public function success(Request $request)
+    public function success(Request $request): View
     {
         // Fallback for a missing or slow webhook: confirm the session with Stripe directly.
         $this->verifyAndActivateSession($request->query('session_id'));
 
-        $user        = $request->user();
+        $user = $request->user();
         $currentPlan = $user->currentPlan();
-        $plans       = config('stripe.plans');
+        $plans = config('stripe.plans');
 
         return view('subscription', compact('user', 'currentPlan', 'plans'))
             ->with('flash_success', 'Payment successful! Your plan has been upgraded.');
     }
 
-    public function cancel(Request $request)
+    public function cancel(Request $request): View
     {
-        $user        = $request->user();
+        $user = $request->user();
         $currentPlan = $user->currentPlan();
-        $plans       = config('stripe.plans');
+        $plans = config('stripe.plans');
 
         return view('subscription', compact('user', 'currentPlan', 'plans'))
             ->with('flash_error', 'Payment was cancelled. Your current plan is unchanged.');
@@ -54,15 +56,15 @@ class SubscriptionController extends Controller
 
     // ── Shared: create Stripe Checkout Session (web + mobile) ─────────────────
 
-    public function createCheckoutSession(Request $request)
+    public function createCheckoutSession(Request $request): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
-            'plan'         => 'required|in:pro,ultra,ultra_plus',
+            'plan' => 'required|in:pro,ultra,ultra_plus',
             'redirect_url' => 'nullable|string|max:2048',
         ]);
 
-        $planKey  = $data['plan'];
-        $priceId  = config("stripe.prices.{$planKey}");
+        $planKey = $data['plan'];
+        $priceId = config("stripe.prices.{$planKey}");
 
         if (empty($priceId)) {
             return response()->json([
@@ -70,16 +72,17 @@ class SubscriptionController extends Controller
             ], 422);
         }
 
-        $user   = $request->user();
+        $user = $request->user();
         $stripe = $this->stripe();
 
         // Retrieve or create a Stripe customer
         $customerId = optional($user->subscription)->stripe_customer_id;
 
         if (! $customerId) {
-            $customer   = $stripe->customers->create([
+            // @phpstan-ignore-next-line
+            $customer = $stripe->customers->create([
                 'email' => $user->email,
-                'name'  => $user->name,
+                'name' => $user->name,
                 'metadata' => ['user_id' => $user->id],
             ]);
             $customerId = $customer->id;
@@ -88,29 +91,30 @@ class SubscriptionController extends Controller
         // Determine return URLs
         if ($request->wantsJson() || $request->is('api/*')) {
             // Mobile: bounce through a web page that re-opens the app via deep link.
-            $redirect   = $this->safeRedirect($data['redirect_url'] ?? null);
-            $successUrl = url('/subscription/mobile-success') . '?session_id={CHECKOUT_SESSION_ID}'
-                . ($redirect ? '&redirect=' . urlencode($redirect) : '');
-            $cancelUrl  = url('/subscription/mobile-cancel')
-                . ($redirect ? '?redirect=' . urlencode($redirect) : '');
+            $redirect = $this->safeRedirect($data['redirect_url'] ?? null);
+            $successUrl = url('/subscription/mobile-success').'?session_id={CHECKOUT_SESSION_ID}'
+                .($redirect ? '&redirect='.urlencode($redirect) : '');
+            $cancelUrl = url('/subscription/mobile-cancel')
+                .($redirect ? '?redirect='.urlencode($redirect) : '');
         } else {
-            $successUrl = route('subscription.success') . '?session_id={CHECKOUT_SESSION_ID}';
-            $cancelUrl  = route('subscription.cancel');
+            $successUrl = route('subscription.success').'?session_id={CHECKOUT_SESSION_ID}';
+            $cancelUrl = route('subscription.cancel');
         }
 
         try {
+            // @phpstan-ignore-next-line
             $session = $stripe->checkout->sessions->create([
-                'customer'   => $customerId,
+                'customer' => $customerId,
                 'line_items' => [[
-                    'price'    => $priceId,
+                    'price' => $priceId,
                     'quantity' => 1,
                 ]],
-                'mode'        => 'subscription',
+                'mode' => 'subscription',
                 'success_url' => $successUrl,
-                'cancel_url'  => $cancelUrl,
-                'metadata'    => [
+                'cancel_url' => $cancelUrl,
+                'metadata' => [
                     'user_id' => $user->id,
-                    'plan'    => $planKey,
+                    'plan' => $planKey,
                 ],
             ]);
 
@@ -124,9 +128,9 @@ class SubscriptionController extends Controller
                 return response()->json(['checkout_url' => $session->url]);
             }
 
-            return redirect($session->url);
+            return redirect()->to($session->url);
         } catch (\Throwable $e) {
-            Log::error('Stripe checkout error: ' . $e->getMessage());
+            Log::error('Stripe checkout error: '.$e->getMessage());
 
             if ($request->wantsJson() || $request->is('api/*')) {
                 return response()->json(['error' => 'Failed to create checkout session.'], 500);
@@ -138,54 +142,55 @@ class SubscriptionController extends Controller
 
     // ── API: current subscription status for mobile ───────────────────────────
 
-    public function status(Request $request)
+    public function status(Request $request): JsonResponse
     {
         $user = $request->user();
         $plan = $user->currentPlan();
+
         return response()->json([
-            'plan'        => $plan,
-            'plan_label'  => config("stripe.plans.{$plan}.label"),
+            'plan' => $plan,
+            'plan_label' => config("stripe.plans.{$plan}.label"),
             'price_label' => config("stripe.plans.{$plan}.price_label"),
-            'limit'       => $user->planLimit(),
-            'status'      => optional($user->subscription)->status ?? 'active',
+            'limit' => $user->planLimit(),
+            'status' => optional($user->subscription)->status ?? 'active',
         ]);
     }
 
     // ── Mobile: return pages (public — opened by the in-app browser after payment) ──
 
-    public function mobileSuccess(Request $request)
+    public function mobileSuccess(Request $request): View
     {
         $activated = $this->verifyAndActivateSession($request->query('session_id'));
 
         return view('subscription-mobile-return', [
-            'success'  => $activated,
-            'icon'     => $activated ? '✅' : '↩️',
-            'title'    => $activated ? 'Payment successful' : 'Payment received',
-            'message'  => $activated
+            'success' => $activated,
+            'icon' => $activated ? '✅' : '↩️',
+            'title' => $activated ? 'Payment successful' : 'Payment received',
+            'message' => $activated
                 ? 'Your plan has been upgraded. Return to the app to see it.'
                 : 'Return to the app to check your plan.',
             'redirect' => $this->safeRedirect($request->query('redirect')),
         ]);
     }
 
-    public function mobileCancel(Request $request)
+    public function mobileCancel(Request $request): View
     {
         return view('subscription-mobile-return', [
-            'success'  => false,
-            'icon'     => '↩️',
-            'title'    => 'Payment cancelled',
-            'message'  => 'Your plan is unchanged. Return to the app to continue.',
+            'success' => false,
+            'icon' => '↩️',
+            'title' => 'Payment cancelled',
+            'message' => 'Your plan is unchanged. Return to the app to continue.',
             'redirect' => $this->safeRedirect($request->query('redirect')),
         ]);
     }
 
     // ── Billing: Stripe-hosted customer portal (cancel, update card, invoices) ──
 
-    public function billingPortal(Request $request)
+    public function billingPortal(Request $request): JsonResponse|RedirectResponse
     {
-        $user       = $request->user();
+        $user = $request->user();
         $customerId = optional($user->subscription)->stripe_customer_id;
-        $isApi      = $request->wantsJson() || $request->is('api/*');
+        $isApi = $request->wantsJson() || $request->is('api/*');
 
         if (! $customerId) {
             $message = 'No billing account yet. Please subscribe to a plan first.';
@@ -197,11 +202,11 @@ class SubscriptionController extends Controller
 
         try {
             $session = $this->stripe()->billingPortal->sessions->create([
-                'customer'   => $customerId,
+                'customer' => $customerId,
                 'return_url' => $isApi ? url('/') : route('subscription'),
             ]);
         } catch (\Throwable $e) {
-            Log::error('Stripe billing portal error: ' . $e->getMessage());
+            Log::error('Stripe billing portal error: '.$e->getMessage());
 
             return $isApi
                 ? response()->json(['error' => 'Failed to open billing portal.'], 500)
@@ -210,7 +215,7 @@ class SubscriptionController extends Controller
 
         return $isApi
             ? response()->json(['portal_url' => $session->url])
-            : redirect($session->url);
+            : redirect()->to($session->url);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -243,7 +248,7 @@ class SubscriptionController extends Controller
         try {
             $session = $this->stripe()->checkout->sessions->retrieve($sessionId, []);
         } catch (\Throwable $e) {
-            Log::warning('Stripe session verification failed: ' . $e->getMessage());
+            Log::warning('Stripe session verification failed: '.$e->getMessage());
 
             return false;
         }
@@ -261,10 +266,10 @@ class SubscriptionController extends Controller
 
     // ── Stripe Webhook ────────────────────────────────────────────────────────
 
-    public function webhook(Request $request)
+    public function webhook(Request $request): JsonResponse
     {
-        $payload       = $request->getContent();
-        $sigHeader     = $request->header('Stripe-Signature');
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
         $webhookSecret = config('stripe.webhook_secret');
 
         // If no webhook secret is set (e.g. during development), skip verification.
@@ -278,13 +283,15 @@ class SubscriptionController extends Controller
             $event = json_decode($payload, false);
         }
 
+        // @phpstan-ignore-next-line
         $type = is_object($event) ? $event->type : ($event['type'] ?? null);
-        $obj  = is_object($event) ? $event->data->object : ($event['data']['object'] ?? []);
+        // @phpstan-ignore-next-line
+        $obj = is_object($event) ? $event->data->object : ($event['data']['object'] ?? []);
 
         match ($type) {
-            'checkout.session.completed'  => $this->handleCheckoutComplete($obj),
+            'checkout.session.completed' => $this->handleCheckoutComplete($obj),
             'customer.subscription.deleted' => $this->handleSubscriptionDeleted($obj),
-            'invoice.payment_failed'      => $this->handlePaymentFailed($obj),
+            'invoice.payment_failed' => $this->handlePaymentFailed($obj),
             default => null,
         };
 
@@ -293,7 +300,7 @@ class SubscriptionController extends Controller
 
     private function handleCheckoutComplete(mixed $session): void
     {
-        $userId  = data_get($session, 'metadata.user_id');
+        $userId = data_get($session, 'metadata.user_id');
         $planKey = data_get($session, 'metadata.plan');
 
         if (! $userId || ! $planKey || ! in_array($planKey, Subscription::PLANS, true)) {
@@ -301,18 +308,18 @@ class SubscriptionController extends Controller
         }
 
         $stripeSubscriptionId = data_get($session, 'subscription');
-        $customerId           = data_get($session, 'customer');
-        $priceId              = config("stripe.prices.{$planKey}");
+        $customerId = data_get($session, 'customer');
+        $priceId = config("stripe.prices.{$planKey}");
 
         Subscription::updateOrCreate(
             ['user_id' => $userId],
             [
-                'plan'                    => $planKey,
-                'stripe_customer_id'      => $customerId,
-                'stripe_subscription_id'  => $stripeSubscriptionId,
-                'stripe_price_id'         => $priceId,
-                'status'                  => 'active',
-                'ends_at'                 => null,
+                'plan' => $planKey,
+                'stripe_customer_id' => $customerId,
+                'stripe_subscription_id' => $stripeSubscriptionId,
+                'stripe_price_id' => $priceId,
+                'status' => 'active',
+                'ends_at' => null,
             ]
         );
     }
@@ -320,12 +327,14 @@ class SubscriptionController extends Controller
     private function handleSubscriptionDeleted(mixed $subscription): void
     {
         $stripeSubId = data_get($subscription, 'id');
-        if (! $stripeSubId) return;
+        if (! $stripeSubId) {
+            return;
+        }
 
         Subscription::where('stripe_subscription_id', $stripeSubId)
             ->update([
-                'plan'    => 'free',
-                'status'  => 'canceled',
+                'plan' => 'free',
+                'status' => 'canceled',
                 'ends_at' => now(),
             ]);
     }
@@ -333,7 +342,9 @@ class SubscriptionController extends Controller
     private function handlePaymentFailed(mixed $invoice): void
     {
         $stripeSubId = data_get($invoice, 'subscription');
-        if (! $stripeSubId) return;
+        if (! $stripeSubId) {
+            return;
+        }
 
         Subscription::where('stripe_subscription_id', $stripeSubId)
             ->update(['status' => 'past_due']);

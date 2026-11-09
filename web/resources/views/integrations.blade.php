@@ -1,6 +1,6 @@
 @extends('layouts.app', ['activeNav' => 'apps'])
 
-@section('title', 'My Apps – SecureThreatShield')
+@section('title', 'Integration Hub – SecureThreatShield')
 @section('description', 'Manage connected applications and TOTP verification gates.')
 
 @section('content')
@@ -8,7 +8,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-gray-700/50">
         <div>
             <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">Application Gates</span>
-            <h1 class="text-xl font-semibold text-white tracking-tight mt-1">My Apps</h1>
+            <h1 class="text-xl font-semibold text-white tracking-tight mt-1">Integration Hub</h1>
             <p class="text-xs text-slate-400 mt-1">Connect external applications, manage TOTP generation status, and monitor session telemetry.</p>
         </div>
 
@@ -45,7 +45,7 @@
                         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
                     </svg>
                 </div>
-                <h2 class="text-sm font-semibold text-white">No applications connected</h2>
+                <h2 class="text-sm font-semibold text-white">No apps integrated yet</h2>
                 <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Click <span class="text-slate-200 font-medium">+ Add Application</span> to register your first application gate and begin generating TOTP tokens.</p>
             </div>
         @else
@@ -136,7 +136,7 @@
 
                             <button type="button"
                                     data-app-id="{{ $app->id }}"
-                                    onclick="openRemoveModalFromCard(this)"
+                                    onclick="removeApp(this)"
                                     class="px-3 py-2 rounded-md text-xs font-medium text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer">
                                 Remove
                             </button>
@@ -488,6 +488,10 @@ async function saveAppDetails() {
 }
 
 // ── Remove Confirmation Modal ────────────────────────────────────────────────
+function removeApp(button) {
+    openRemoveModalFromCard(button);
+}
+
 function openRemoveModalFromCard(button) {
     const id = button.dataset.appId;
     const card = document.getElementById('card-' + id);

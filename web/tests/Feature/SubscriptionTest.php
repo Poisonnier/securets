@@ -42,7 +42,7 @@ test('free user can add up to 3 integrations', function () {
         $this->actingAs($user)
             ->postJson('/web/integrations', [
                 'name' => "App {$i}",
-                'url'  => "https://app{$i}.example.com",
+                'url' => "https://app{$i}.example.com",
             ])
             ->assertCreated();
     }
@@ -53,8 +53,8 @@ test('free user hitting 4th integration gets 403 upgrade_required', function () 
 
     foreach (range(1, 3) as $i) {
         $user->integrations()->create([
-            'name'       => "App {$i}",
-            'url'        => "https://app{$i}.example.com",
+            'name' => "App {$i}",
+            'url' => "https://app{$i}.example.com",
             'secret_key' => str_repeat('a', 16),
         ]);
     }
@@ -62,7 +62,7 @@ test('free user hitting 4th integration gets 403 upgrade_required', function () 
     $this->actingAs($user)
         ->postJson('/web/integrations', [
             'name' => 'App 4',
-            'url'  => 'https://app4.example.com',
+            'url' => 'https://app4.example.com',
         ])
         ->assertStatus(403)
         ->assertJsonPath('upgrade_required', true)
@@ -74,14 +74,14 @@ test('pro user (limit 10) can add up to 10 integrations before hitting limit', f
     $user = User::factory()->create();
     Subscription::create([
         'user_id' => $user->id,
-        'plan'    => 'pro',
-        'status'  => 'active',
+        'plan' => 'pro',
+        'status' => 'active',
     ]);
 
     foreach (range(1, 10) as $i) {
         $user->integrations()->create([
-            'name'       => "App {$i}",
-            'url'        => "https://proapp{$i}.example.com",
+            'name' => "App {$i}",
+            'url' => "https://proapp{$i}.example.com",
             'secret_key' => str_repeat('b', 16),
         ]);
     }
@@ -90,7 +90,7 @@ test('pro user (limit 10) can add up to 10 integrations before hitting limit', f
     $this->actingAs($user)
         ->postJson('/web/integrations', [
             'name' => 'App 11',
-            'url'  => 'https://proapp11.example.com',
+            'url' => 'https://proapp11.example.com',
         ])
         ->assertStatus(403)
         ->assertJsonPath('upgrade_required', true)
@@ -102,8 +102,8 @@ test('ultra_plus user (unlimited) is never blocked', function () {
     $user = User::factory()->create();
     Subscription::create([
         'user_id' => $user->id,
-        'plan'    => 'ultra_plus',
-        'status'  => 'active',
+        'plan' => 'ultra_plus',
+        'status' => 'active',
     ]);
 
     // Add 5 integrations quickly — should never get a 403
@@ -111,7 +111,7 @@ test('ultra_plus user (unlimited) is never blocked', function () {
         $this->actingAs($user)
             ->postJson('/web/integrations', [
                 'name' => "Unlimited App {$i}",
-                'url'  => "https://unlimited{$i}.example.com",
+                'url' => "https://unlimited{$i}.example.com",
             ])
             ->assertCreated();
     }
@@ -134,8 +134,8 @@ test('mobile status reflects paid plan after subscription row is created', funct
     $user = User::factory()->create();
     Subscription::create([
         'user_id' => $user->id,
-        'plan'    => 'ultra',
-        'status'  => 'active',
+        'plan' => 'ultra',
+        'status' => 'active',
     ]);
     Sanctum::actingAs($user);
 
@@ -154,9 +154,9 @@ test('webhook checkout.session.completed upgrades plan', function () {
         'type' => 'checkout.session.completed',
         'data' => [
             'object' => [
-                'metadata'     => ['user_id' => $user->id, 'plan' => 'pro'],
+                'metadata' => ['user_id' => $user->id, 'plan' => 'pro'],
                 'subscription' => 'sub_testABC',
-                'customer'     => 'cus_testXYZ',
+                'customer' => 'cus_testXYZ',
             ],
         ],
     ]);
@@ -166,21 +166,21 @@ test('webhook checkout.session.completed upgrades plan', function () {
         ->assertJsonPath('received', true);
 
     $this->assertDatabaseHas('subscriptions', [
-        'user_id'                 => $user->id,
-        'plan'                    => 'pro',
-        'stripe_subscription_id'  => 'sub_testABC',
-        'stripe_customer_id'      => 'cus_testXYZ',
-        'status'                  => 'active',
+        'user_id' => $user->id,
+        'plan' => 'pro',
+        'stripe_subscription_id' => 'sub_testABC',
+        'stripe_customer_id' => 'cus_testXYZ',
+        'status' => 'active',
     ]);
 });
 
 test('webhook customer.subscription.deleted resets plan to free', function () {
     $user = User::factory()->create();
     Subscription::create([
-        'user_id'                => $user->id,
-        'plan'                   => 'ultra',
+        'user_id' => $user->id,
+        'plan' => 'ultra',
         'stripe_subscription_id' => 'sub_toDelete',
-        'status'                 => 'active',
+        'status' => 'active',
     ]);
 
     $payload = [
@@ -193,8 +193,8 @@ test('webhook customer.subscription.deleted resets plan to free', function () {
 
     $this->assertDatabaseHas('subscriptions', [
         'user_id' => $user->id,
-        'plan'    => 'free',
-        'status'  => 'canceled',
+        'plan' => 'free',
+        'status' => 'canceled',
     ]);
 });
 
@@ -215,13 +215,13 @@ test('mobile cancel page is public and renders', function () {
 test('mobile success page bounces to an allowed app deep link', function () {
     $deepLink = 'exp://192.168.1.5:8081/--/subscription';
 
-    $this->get(route('subscription.mobile-success') . '?redirect=' . urlencode($deepLink))
+    $this->get(route('subscription.mobile-success').'?redirect='.urlencode($deepLink))
         ->assertOk()
         ->assertSee($deepLink, false);
 });
 
 test('mobile success page drops a non-app redirect target', function () {
-    $this->get(route('subscription.mobile-success') . '?redirect=' . urlencode('https://evil.example.com'))
+    $this->get(route('subscription.mobile-success').'?redirect='.urlencode('https://evil.example.com'))
         ->assertOk()
         ->assertDontSee('evil.example.com');
 });

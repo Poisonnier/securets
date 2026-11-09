@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $plan
+ * @property string $status
+ */
 class Subscription extends Model
 {
     protected $fillable = [
@@ -24,6 +28,11 @@ class Subscription extends Model
     /** Valid plan slugs. */
     public const PLANS = ['free', 'pro', 'ultra', 'ultra_plus'];
 
+    /**
+     * @return BelongsTo<User, Subscription>
+     *
+     * @phpstan-return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -33,7 +42,7 @@ class Subscription extends Model
      * The maximum number of integrations for this plan.
      * Returns null for unlimited.
      */
-    public function limit(): int|null
+    public function limit(): ?int
     {
         return config("stripe.limits.{$this->plan}");
     }

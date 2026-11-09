@@ -31,8 +31,19 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Force Clean Native Dependencies
+        run: |
+          rm -rf node_modules web/node_modules vendor web/vendor
+          rm -f package-lock.json web/package-lock.json
+
+      - name: Install Native Node Packages
+        working-directory: ./web
+        run: npm install
+
       - name: Setup Application
+        working-directory: ./web
         run: composer setup
 
       - name: Run CI Checks
+        working-directory: ./web
         run: composer ci:check
