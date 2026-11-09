@@ -220,7 +220,7 @@ class AdminDashboardController extends Controller
     public function generateBypassCode(Request $request)
     {
         $email = $request->input('email');
-        $code = 'STS-' . rand(1000, 9999) . '-' . strtoupper(substr(md5(uniqid()), 0, 2));
+        $code = 'STS-'.rand(1000, 9999).'-'.strtoupper(substr(md5(uniqid()), 0, 2));
 
         return response()->json([
             'status' => 'success',

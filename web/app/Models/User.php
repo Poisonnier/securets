@@ -97,7 +97,7 @@ class User extends Authenticatable
 
     public function subscription(): HasOne
     {
-        return $this->hasOne(\App\Models\Subscription::class);
+        return $this->hasOne(Subscription::class);
     }
 
     /**
@@ -112,8 +112,8 @@ class User extends Authenticatable
      * Maximum number of integrations for the user's current plan.
      * Returns null for unlimited plans.
      */
-    public function planLimit(): int|null
+    public function planLimit(): ?int
     {
-        return config('stripe.limits.' . $this->currentPlan());
+        return config('stripe.limits.'.$this->currentPlan());
     }
 }

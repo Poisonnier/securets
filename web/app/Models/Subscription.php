@@ -33,7 +33,7 @@ class Subscription extends Model
      * The maximum number of integrations for this plan.
      * Returns null for unlimited.
      */
-    public function limit(): int|null
+    public function limit(): ?int
     {
         return config("stripe.limits.{$this->plan}");
     }
