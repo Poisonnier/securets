@@ -13,12 +13,12 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('plan');
             $table->string('type')->default('default');
-            
+
             // Corrected to match your test payload
             $table->string('stripe_customer_id')->nullable();
             $table->string('stripe_subscription_id')->nullable()->unique();
             $table->string('stripe_price_id')->nullable();
-            
+
             $table->string('stripe_status')->nullable();
             $table->integer('quantity')->nullable();
             $table->timestamp('trial_ends_at')->nullable();
