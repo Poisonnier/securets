@@ -1,181 +1,229 @@
 # SecureThreatShield (SecureTS)
 
-SecureTS is a multi-factor authentication platform that protects user accounts in third-party **Target Apps**. A Target App sends an access request to SecureTS. SecureTS pushes a real-time approval prompt to the user's registered mobile device, the user approves or denies it, and SecureTS returns the decision to the Target App. For offline or fallback verification, SecureTS also issues time-based one-time passwords (TOTP).
+![SecureTS Platform](src/gif/landing%20page%20view.gif)
 
-The repository contains two applications:
+A high-speed, monorepo-based security command center and active session management platform protecting Target Apps with MFA, biometric gates, and emergency lockdown.
 
-| Path      | Application                                         |
-| --------- | --------------------------------------------------- |
-| `/`       | Web dashboard and API (Laravel + Livewire)          |
-| `/mobile` | Authenticator app (React Native + Expo)             |
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Passing-22c55e?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/tests.yml)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployment-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+[![Expo EAS](https://img.shields.io/badge/Expo_EAS-SDK_58-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![Laravel 13](https://img.shields.io/badge/Laravel-13.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+[![React Native](https://img.shields.io/badge/React_Native-0.88-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
 
 ---
 
 ## Core Features
 
-- **Push Login Approvals:** Real-time approve/deny prompts sent to the registered device over Laravel Reverb WebSockets and Expo push notifications.
-- **TOTP Authenticator:** RFC 6238 time-based one-time passwords (via `pragmarx/google2fa`) as a second factor and offline fallback.
-- **Integration Hub:** Each user can register Target Apps and get an Integration ID and API Secret for each one.
-- **Device Registration:** Device binding with setup tokens and per-device Instance Tokens.
-- **Login History:** An audit trail of every access request and its result.
-- **Subscriptions:** Stripe-backed plan tiers (Pro, Ultra, Ultra Plus).
+### Web Platform (The Hub)
+
+![Integration Hub](src/gif/integration.gif)
+
+- **Integration Hub:** Register third-party Target Apps with dedicated Integration IDs and securely hashed API Secrets, supporting instant credential revocation and rotation.
+- **Security Audit Trail:** Complete, immutable logging of all access requests, verification results (`approved`, `denied`, `expired`), IP addresses, and device fingerprints.
+- **Active Session Management:** Centralized visibility over active user sessions across all connected Target Apps with immediate remote termination.
+- **Stripe Subscriptions:** Tiered developer and organization billing (Pro, Ultra, Ultra Plus) managing integration caps, device limits, and team quotas.
+
+### Mobile App (The Command Center)
+
+![Mobile Command Center](src/gif/mobile%20homepage.gif)
+
+- **Push Login Approvals:** Instant, interactive approve/deny prompts dispatched via high-throughput Laravel Reverb WebSockets and Expo Push Notifications (target p95 latency < 2s).
+- **Emergency "Swipe-to-Lockdown" Kill Switch:** Rapid one-action gesture that immediately invalidates all active sessions, revokes access tokens, and freezes connected Target App authorizations.
+- **Biometric Admin Gates:** Local FaceID / TouchID / biometric authentication guarding high-security operations, token rotations, and sensitive approval confirmations.
+- **TOTP Fallback:** Built-in RFC 6238 time-based one-time password generator (30-second rotating codes with visual countdown indicator) guaranteeing uninterrupted offline authentication.
 
 ---
 
-## Tech Stack
+## Architecture & Monorepo Map
 
-### Backend & Web
-- **Laravel 13** (PHP 8.3+), with Sanctum for API token authentication
-- **Livewire 4** + **Blaze** for server-driven UI
-- **Tailwind CSS** for styling, built with Vite
-- **Laravel Reverb** for real-time WebSocket broadcasting
-- **Pest 5**, **Larastan**, and **Laravel Pint** for testing, static analysis, and formatting
+### Monorepo Structure
 
-### Mobile
-- **React Native** + **Expo** (SDK 58)
-- `expo-secure-store` for credential storage
-- `expo-notifications` for push approvals
-- `pusher-js` for the Reverb WebSocket client
-- `axios` as the HTTP client
+```
+securets/
+├── web/                             # Web Dashboard, REST API & WebSocket Server
+│   ├── app/                         # Controllers, Models, Events, Notifications
+│   │   ├── Http/
+│   │   │   ├── Controllers/
+│   │   │   └── Requests/
+│   │   ├── Models/
+│   │   └── Events/
+│   ├── bootstrap/                   # App initialization & provider bindings
+│   ├── config/                      # Laravel environment configuration
+│   ├── database/                    # Migrations, seeders, and factories
+│   │   ├── factories/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   ├── public/                      # Static assets & entry index.php
+│   ├── resources/                   # Livewire 4 components, Blade, Tailwind CSS
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── views/
+│   ├── routes/                      # API, Web, Console, and Channels routes
+│   │   ├── api.php
+│   │   ├── channels.php
+│   │   ├── console.php
+│   │   └── web.php
+│   ├── tests/                       # Pest 5 feature and unit test suite
+│   │   ├── Feature/
+│   │   └── Unit/
+│   ├── composer.json                # PHP dependencies & dev scripts
+│   ├── package.json                 # Web frontend dependencies & Vite scripts
+│   ├── phpstan.neon                 # Larastan static analysis configuration
+│   └── vite.config.js               # Vite asset bundling pipeline
+│
+└── mobile/                          # Command Center Authenticator App
+    ├── components/                  # UI components, icons & biometric modals
+    ├── public/                      # Mobile application branding & icons
+    ├── scripts/                     # Network utilities (LAN / Tailscale detector)
+    │   └── detect-lan-ip.js
+    ├── src/
+    │   ├── api/                     # Sanctum HTTP client (axios wrapper)
+    │   │   └── client.js
+    │   ├── lib/                     # Secure store & crypto utilities
+    │   └── theme/                   # WorkOS-inspired dark mode theme tokens
+    ├── App.jsx                      # Main application root & screen routing
+    ├── app.json                     # Expo SDK 58 project configuration
+    └── package.json                 # React Native & Expo dependencies
+```
 
-### Data
-- **Supabase (PostgreSQL)** for shared team and staging environments
-- **SQLite** for zero-config local development
+### Communication & Security Flow
+
+```mermaid
+flowchart TD
+    subgraph TargetApp["External Ecosystem"]
+        TA["Target App (Third-Party)"]
+    end
+
+    subgraph WebCore["SecureTS Web Hub (/web)"]
+        API["Laravel 13 API (Sanctum Auth)"]
+        Reverb["Laravel Reverb (Port 8085)"]
+        DB[("Database (SQLite / Supabase)")]
+    end
+
+    subgraph MobileDevice["SecureTS Mobile Command Center (/mobile)"]
+        RN["React Native Client (Expo SDK 58)"]
+        Bio["Biometric Admin Gate"]
+        Store["expo-secure-store (Instance Tokens)"]
+    end
+
+    %% Access Request Flow
+    TA -->|"1. HTTPS POST /api/v1/access-requests (API Secret)"| API
+    API -->|"2. Log Request & Persist State"| DB
+    API -->|"3. Broadcast Push / WebSocket Event"| Reverb
+    Reverb -->|"4. Real-Time Notification"| RN
+
+    %% User Decision & Biometrics
+    RN -->|"5. Gate Trigger & Local Authentication"| Bio
+    Bio -->|"6. Authorization Confirmed"| RN
+    RN -->|"7. HTTPS POST /api/v1/access-requests/{id}/decision (Instance Token)"| API
+    Store -.->|"Hardware-Backed Secret Storage"| RN
+
+    %% Target Resolution
+    API -->|"8. Push Real-Time Decision"| Reverb
+    API -->|"9. Return Status: Approved / Denied / Expired"| TA
+    Reverb -.->|"State Synchronization"| TA
+```
 
 ---
 
-## Prerequisites
+## Tech Stack Ecosystem
 
-- PHP 8.3+ and Composer
-- Node.js 20+ and npm
-- The Expo Go app on a physical device, or an Android/iOS simulator
-- The phone and the development machine on the same network (or connected through Tailscale)
+| Layer | Technologies | Role & Purpose |
+| :--- | :--- | :--- |
+| **Web API & Hub** | **Laravel 13** & **PHP 8.3+** | High-performance core backend framework and REST API engine. |
+| **Server-Driven UI** | **Livewire 4** & **Blaze** | Real-time reactive web dashboard and integration management interface. |
+| **Styling & Design** | **Tailwind CSS** (Vite) | WorkOS-inspired minimalist dark mode UI implementation. |
+| **Real-Time Engine** | **Laravel Reverb** (Port 8085) | Ultra-low latency WebSocket broadcasting server for instant mobile approvals. |
+| **Mobile Core** | **React Native** & **Expo** (SDK 58) | Cross-platform Command Center authenticator client. |
+| **Mobile Security** | **`expo-secure-store`** | Encrypted hardware-backed storage for device Instance Tokens and secrets. |
+| **Database (Dev)** | **SQLite** | Zero-configuration local database for frictionless development and CI tests. |
+| **Database (Prod)** | **Supabase (PostgreSQL)** | Distributed cloud PostgreSQL for production persistence and team environments. |
 
 ---
 
-## Web Setup
+## Quick Start (Zero to Hero)
 
-### 1. Clone and install
+> [!IMPORTANT]
+> Physical mobile devices and the host development workstation must reside on the same Local Area Network (LAN) or be interconnected via a **Tailscale** mesh network.
 
-```bash
-git clone https://github.com/kentjohnllanita8978-oss/secure-hub.git securets
-cd securets
-composer install
-npm install
-```
+### 1. Web Platform Setup
 
-### 2. Configure the environment
+Navigate into the `/web` directory to configure and start the backend ecosystem:
 
 ```bash
-cp .env.example .env
-php artisan key:generate
-```
+cd web
 
-**Option A — SQLite (recommended for solo local development):**
+# 1. Automated initialization (installs dependencies, copies .env, generates keys, runs migrations)
+composer run setup
 
-```env
-DB_CONNECTION=sqlite
-```
-
-```bash
-touch database/database.sqlite
-```
-
-**Option B — Supabase (shared team database):** Fill in the `DB_*` credentials in `.env`. Get them from your team lead. Never commit them.
-
-### 3. Migrate
-
-```bash
-php artisan migrate
-```
-
-### 4. Configure Reverb
-
-Use port **8085** to avoid conflicts with a local Apache on 8080:
-
-```env
-REVERB_PORT=8085
-REVERB_SERVER_PORT=8085
-```
-
-### 5. Configure Stripe (optional; needed only for subscriptions)
-
-```env
-STRIPE_KEY=pk_test_...
-STRIPE_SECRET=sk_test_...
-STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_PRO=price_...
-STRIPE_PRICE_ULTRA=price_...
-STRIPE_PRICE_ULTRA_PLUS=price_...
-```
-
-Leave `STRIPE_WEBHOOK_SECRET` empty during local development. Set it only when you forward events with `stripe listen`.
-
-### 6. Run
-
-```bash
+# 2. Start all services concurrently (Laravel API on 0.0.0.0:8000, Reverb on 8085, queue worker, Vite)
 composer run dev
 ```
 
-This starts the Laravel server (`:8000`), Reverb (`:8085`), the queue worker, and Vite together. Open `http://localhost:8000`.
+The web dashboard is now accessible at `http://localhost:8000`.
 
----
+### 2. Mobile App Setup
 
-## Mobile Setup
-
-### 1. Install
+In a separate terminal session, configure and launch the mobile Command Center:
 
 ```bash
 cd mobile
+
+# 1. Install dependencies and prepare environment configuration
 npm install
 cp .env.example .env
+
+# 2. Launch the development server
+# Recommended for cross-network access (Tailscale):
+npm run start:tailscale
+
+# Standard Local Area Network (LAN) mode:
+npm start
+
+# Target-specific emulator / simulator runs:
+npm run android
+npm run ios
 ```
 
-### 2. Configure
-
-```env
-EXPO_PUBLIC_API_URL=http://192.168.x.x:8000/api
-EXPO_PUBLIC_REVERB_HOST=192.168.x.x
-EXPO_PUBLIC_REVERB_PORT=8085
-EXPO_PUBLIC_REVERB_SCHEME=http
-```
-
-You usually don't need to edit these by hand, because `npm start` detects your LAN IP and writes it in automatically.
-
-### 3. Run
-
-```bash
-npm start              # Same Wi-Fi network as the backend
-npm run start:tailscale  # Different network (uses the Tailscale IP)
-npm run android        # Android emulator
-npm run ios            # iOS simulator
-```
-
-Scan the QR code with Expo Go.
+Scan the terminal QR code using **Expo Go** on your physical mobile device.
 
 ---
 
-## Useful Commands
+## Rigorous CI/CD Standards
+
+SecureTS enforces a strict continuous integration gate on all pull requests and branch merges into `main` using GitHub Actions:
+
+- **Formatting Validation:** Code style consistency enforced strictly via `Laravel Pint` (`pint --parallel --test`).
+- **Static Type Analysis:** Highest-tier strict static analysis with `Larastan` / `PHPStan` at **Level 9**.
+- **Automated Test Suite:** Comprehensive feature and unit verification powered by `Pest 5` executed against an isolated in-memory SQLite database (`:memory:`).
+
+To execute the identical verification suite locally prior to opening a PR:
 
 ```bash
-composer run dev        # All backend services
-composer test           # Pint check + PHPStan + Pest
-composer lint           # Auto-format with Pint
-composer types:check    # PHPStan / Larastan
-php artisan test        # Pest only
-npm run build           # Production web assets
+cd web
+composer run test
 ```
 
 ---
 
-## Documentation
+## Deployment Targets
 
-- [Product Requirements](PRD.md)
-- [Contributing Guide](CONTRIBUTING.md)
+- **Web API & Dashboard:** Optimized for serverless edge execution on **Vercel** utilizing the `vercel-php` runtime with optimized asset caching and environment-level database pooling.
+- **Mobile Authenticator:** Production builds compiled and distributed across iOS (App Store / TestFlight) and Android (Google Play / APK) via **Expo Application Services (EAS)**.
+
+---
+
+## Documentation & License
+
+### Documentation
+
+- [Product Requirements Document (PRD)](PRD.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 - [Security Policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
-- [AI Agent Guide](AGENTS.md)
+- [AI Agent Operating Guide](AGENTS.md)
 
-## License
+### License
 
-Released under the [MIT License](LICENSE). © 2026 Nathan G. Abrenica.
+Distributed under the [MIT License](LICENSE).  
+Copyright &copy; 2026 Secure ThreatShield Organization. All rights reserved.
