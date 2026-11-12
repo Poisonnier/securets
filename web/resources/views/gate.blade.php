@@ -209,6 +209,7 @@
     data-attempt-url="{{ $integration->gateUrl() }}"
     data-is-first="{{ $isFirst ? '1' : '0' }}"
     data-app-name="{{ $integration->name }}"
+    data-ext="{{ $ext ? '1' : '0' }}"
 >
 <div class="layout">
     <div class="card">
@@ -221,28 +222,24 @@
         </div>
 
         <div id="firstPanel" class="{{ $isFirst ? '' : 'hidden' }}">
-            <div class="eyebrow">Protected Login</div>
-            <h1>First-time setup</h1>
-            <p>Enter the credentials this app uses to sign you in. Later visits will ask for approval on your phone instead.</p>
+            <div class="eyebrow">SecureTS Gate</div>
+            <h1>First gate visit</h1>
+            <p>SecureTS does not sign in to this site or stop direct visits to it. The first visit through this gate is auto-approved; later visits through this link wait for phone approval. Direct sign-ins on the external site bypass this gate. Do not enter your external account password here.</p>
             <div class="err" id="firstError"></div>
             <form id="firstForm">
-                <label for="username">Username or email</label>
-                <input id="username" name="credential_username" autocomplete="username" required>
-                <label for="password">Password</label>
-                <input id="password" name="credential_password" type="password" autocomplete="current-password" required>
-                <button type="submit" id="firstBtn">Continue</button>
+                <button type="submit" id="firstBtn">Continue to SecureTS check</button>
             </form>
         </div>
 
         <div id="waitPanel" class="status {{ $isFirst ? 'hidden' : '' }}">
-            <div class="eyebrow">Protected Login</div>
+            <div class="eyebrow">SecureTS Gate</div>
             <h1>Waiting for approval</h1>
-            <p>Open the SecureTS app on your phone and choose Approve or Decline. When approved, {{ $integration->name }} will open in the panel beside this login card.</p>
+            <p>Open the SecureTS app on your phone and choose Approve or Decline. After approval, {{ $integration->name }} may open beside this page if it allows embedding. SecureTS does not sign in to the external site.</p>
             <strong id="waitStatus">Contacting your device...</strong>
         </div>
 
         <div id="donePanel" class="status hidden">
-            <div class="eyebrow">Protected Login</div>
+            <div class="eyebrow">SecureTS Gate</div>
             <strong id="doneTitle"></strong>
             <p id="doneText"></p>
             <p><a id="doneLink" href="{{ $integration->url }}" target="_blank" rel="noopener noreferrer">Continue to {{ $integration->name }}</a></p>
@@ -300,6 +297,7 @@ const settings   = document.body.dataset;
 const ATTEMPT_URL = settings.attemptUrl;
 const IS_FIRST   = settings.isFirst === '1';
 const APP_NAME   = settings.appName;
+const EXT        = settings.ext === '1';
 
 function show(id) {
     ['firstPanel', 'waitPanel', 'donePanel'].forEach((p) => {
@@ -332,7 +330,7 @@ function setPreviewState(status, redirectUrl = null) {
     if (status === 'approved' || status === 'auto') {
         previewStatus.textContent = status === 'auto' ? 'Auto-approved' : 'Approved';
         previewTitle.textContent  = APP_NAME + ' is ready';
-        previewText.textContent   = 'The protected app has been unlocked for this session. It loads beside the login card, and you can also open it in a new tab.';
+        previewText.textContent   = 'This SecureTS gate visit is approved. The external site may load beside this page, but you must sign in there separately. Direct visits bypass this gate.';
         previewPlaceholder.classList.add('hidden');
         previewFrame.classList.remove('hidden');
         previewLink.classList.remove('hidden');
@@ -384,8 +382,13 @@ function finish(data) {
     const doneLink = document.getElementById('doneLink');
 
     if (data.status === 'auto' || data.status === 'approved') {
+        // Extension flow: keep this tab and continue straight to the target site.
+        if (EXT && isSafeHttpUrl(data.redirect_url)) {
+            window.location.replace(data.redirect_url);
+            return;
+        }
         document.getElementById('doneTitle').textContent = 'Approved';
-        document.getElementById('doneText').textContent  = 'The app is unlocked. You can continue in the preview area or open it directly.';
+        document.getElementById('doneText').textContent  = 'This SecureTS gate visit is approved. SecureTS does not sign you in to the external site; direct visits to it bypass this gate.';
         doneLink.classList.remove('hidden');
         if (isSafeHttpUrl(data.redirect_url)) doneLink.href = data.redirect_url;
         setPreviewState(data.status, data.redirect_url);
@@ -476,10 +479,7 @@ document.getElementById('firstForm').addEventListener('submit', async (e) => {
     err.textContent = '';
     btn.disabled    = true;
     try {
-        const data = await attempt({
-            credential_username: document.getElementById('username').value.trim(),
-            credential_password: document.getElementById('password').value,
-        });
+        const data = await attempt({});
         finish(data);
     } catch (ex) {
         err.textContent = ex.message;
@@ -492,10 +492,14 @@ if (!IS_FIRST) {
     attempt({}).then(finish).catch((ex) => {
         document.getElementById('waitStatus').textContent = ex.message;
     });
+} else if (EXT) {
+    // Extension flow: the first gate visit needs no button press either.
+    attempt({}).then(finish).catch((ex) => {
+        document.getElementById('firstError').textContent = ex.message;
+    });
 } else {
     setPreviewState('idle');
 }
 </script>
 </body>
 </html>
-
