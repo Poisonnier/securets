@@ -16,7 +16,8 @@ A high-speed, monorepo-based security command center and active session manageme
 
 ### Web Platform (The Hub)
 
-![Integration Hub](src/gif/integration.gif)
+![Web Integration](src/images/Web%20integration.jpg)
+![Waiting Approval State](src/images/Waiting.jpg)
 
 - **Integration Hub:** Register third-party Target Apps with dedicated Integration IDs and securely hashed API Secrets, supporting instant credential revocation and rotation.
 - **Security Audit Trail:** Complete, immutable logging of all access requests, verification results (`approved`, `denied`, `expired`), IP addresses, and device fingerprints.
@@ -25,7 +26,7 @@ A high-speed, monorepo-based security command center and active session manageme
 
 ### Mobile App (The Command Center)
 
-![Mobile Command Center](src/gif/mobile%20homepage.gif)
+![Mobile Layout](src/gif/Full%20mobile%20layout%20%28buggy%29.gif)
 
 - **Push Login Approvals:** Instant, interactive approve/deny prompts dispatched via high-throughput Laravel Reverb WebSockets and Expo Push Notifications (target p95 latency < 2s).
 - **Emergency "Swipe-to-Lockdown" Kill Switch:** Rapid one-action gesture that immediately invalidates all active sessions, revokes access tokens, and freezes connected Target App authorizations.
