@@ -7,6 +7,7 @@ import {
     ActivityIndicator,
     StyleSheet,
     RefreshControl,
+    Platform,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
@@ -37,7 +38,7 @@ const PLANS = [
     {
         key:         'ultra',
         label:       'Ultra',
-        priceLabel:  '$10 / month',
+        priceLabel:  '$20 / month',
         color:       '#8B5CF6',
         limit:       20,
         features:    ['Up to 20 integrations', 'TOTP Authenticator', 'Push Notifications', 'Priority support', 'Advanced analytics'],
@@ -89,11 +90,34 @@ export default function SubscriptionScreen({ user }) {
 
     const handleSubscribe = async (planKey) => {
         setProcessing(planKey);
+        const checkoutWindow = Platform.OS === 'web' && typeof window !== 'undefined'
+            ? window.open('about:blank', '_blank')
+            : null;
+
         try {
             const redirectUrl = appRedirectUrl();
             const data        = await createCheckoutSession(planKey, redirectUrl);
             const checkoutUrl = data.checkout_url;
             if (!checkoutUrl) throw new Error('No checkout URL returned.');
+
+            if (Platform.OS === 'web') {
+                if (checkoutWindow) {
+                    checkoutWindow.opener = null;
+                    checkoutWindow.location.href = checkoutUrl;
+                    await new Promise((resolve) => {
+                        const timer = setInterval(() => {
+                            if (checkoutWindow.closed) {
+                                clearInterval(timer);
+                                resolve();
+                            }
+                        }, 500);
+                    });
+                    await load(true);
+                } else {
+                    window.location.assign(checkoutUrl);
+                }
+                return;
+            }
 
             // In-app browser closes itself when Stripe redirects back to redirectUrl.
             const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, redirectUrl);
@@ -103,6 +127,7 @@ export default function SubscriptionScreen({ user }) {
                 await load(true);
             }
         } catch (e) {
+            checkoutWindow?.close();
             setError(e.response?.data?.error || e.message || 'Failed to open checkout. Please try again.');
         } finally {
             setProcessing(null);
