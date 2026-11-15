@@ -14,6 +14,11 @@ $loader->addPsr4('App\\', [__DIR__.'/../app'], true);
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php')
+    ->withMiddleware(function (\Illuminate\Foundation\Configuration\Middleware $middleware): void {
+        // The admin mobile/web Expo client runs on a different origin.
+        // Allow it to read and submit the admin API requests.
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->expectsJson(),
