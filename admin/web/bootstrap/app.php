@@ -4,6 +4,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\Request;
 
+require_once __DIR__.'/php85-carbon-compat.php';
+
 // vendor/ is a junction to ../../web/vendor, so its autoloader maps App\ to
 // /web/app. Prepend this app's own app/ directory so the admin classes that
 // live in this folder take precedence, with /web/app still reachable behind it.

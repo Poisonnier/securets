@@ -8,8 +8,13 @@ const resolveBaseUrl = () => {
   return 'http://127.0.0.1:8001';
 };
 
+const configuredBaseUrl = resolveBaseUrl();
+// Accept both forms so the same build works with the browser URL
+// `http://localhost:8001/admin` and with a host-only mobile URL.
+const adminPath = /\/admin$/i.test(configuredBaseUrl) ? '' : '/admin';
+
 const API = axios.create({
-  baseURL: resolveBaseUrl(),
+  baseURL: configuredBaseUrl,
   timeout: 10000,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 });
@@ -31,18 +36,20 @@ export type AdminOverview = {
   audit: Array<{ time: string; actor: string; action: string; target: string; severity: string }>;
 };
 
-export const getOverview = () => API.get<AdminOverview>('/admin/api/overview');
+export const getAdminApiBaseUrl = () => `${configuredBaseUrl}${adminPath}`;
+
+export const getOverview = () => API.get<AdminOverview>(`${adminPath}/api/overview`);
 
 export const triggerLockdown = (reason = 'Emergency response from admin mobile') =>
-  API.post('/admin/api/system/lockdown', { confirmation: 'LOCKDOWN', reason });
+  API.post(`${adminPath}/api/system/lockdown`, { confirmation: 'LOCKDOWN', reason });
 
 export const restoreAccess = () =>
-  API.post('/admin/api/system/unlock', { confirmation: 'UNLOCK' });
+  API.post(`${adminPath}/api/system/unlock`, { confirmation: 'UNLOCK' });
 
 export const deviceAction = (deviceId: number, action: 'remote_lock' | 'revoke_tokens' | 'mark_recovered') =>
-  API.post(`/admin/api/devices/${deviceId}/action`, { action });
+  API.post(`${adminPath}/api/devices/${deviceId}/action`, { action });
 
 export const generateBypassCode = (email: string) =>
-  API.post('/admin/recovery/generate-code', { email });
+  API.post(`${adminPath}/recovery/generate-code`, { email });
 
 export default API;

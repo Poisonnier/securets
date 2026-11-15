@@ -113,8 +113,10 @@ function renderSessions(sessions = []) {
         <td class="font-mono text-xs">${escapeHtml(session.ip)}</td>
         <td class="text-slate-500">${escapeHtml(session.last_seen)}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="text-slate-500">No active sessions in the last 24 hours.</td></tr>';
-    const badge = document.querySelector('[data-tab="sessions"] .nav-badge');
-    if (badge) badge.textContent = sessions.length.toLocaleString();
+    const count = document.querySelector('#sessions-count') ?? document.querySelector('[data-tab="sessions"] .nav-badge');
+    if (count) count.textContent = sessions.length.toLocaleString();
+    const summary = document.querySelector('#sessions-summary') ?? document.querySelector('#view-sessions .panel-header .badge');
+    if (summary) summary.textContent = `${sessions.length.toLocaleString()} active`;
 }
 
 function renderRecovery(devices = []) {
@@ -128,8 +130,10 @@ function renderRecovery(devices = []) {
         <span>${escapeHtml(device.status)} · ${escapeHtml(device.location)}</span>
         <button type="button" class="primary-button" data-recovery-device="${escapeHtml(device.id)}">Review device</button>
     </div>`).join('') : '<div class="recovery-card"><strong>No pending recovery devices</strong><span>All registered devices are active or recovered.</span></div>';
-    const badge = document.querySelector('[data-tab="recovery"] .nav-badge');
-    if (badge) badge.textContent = pending.length.toLocaleString();
+    const count = document.querySelector('#recovery-count') ?? document.querySelector('[data-tab="recovery"] .nav-badge');
+    if (count) count.textContent = pending.length.toLocaleString();
+    const summary = document.querySelector('#recovery-summary') ?? document.querySelector('#view-recovery .panel-header .badge');
+    if (summary) summary.textContent = `${pending.length.toLocaleString()} pending`;
 }
 
 function applyMetrics(metrics) {
@@ -176,19 +180,10 @@ async function loadOverview() {
     }
 }
 
-document.querySelector('#simulate-event')?.addEventListener('click', async () => {
-    try {
-        const response = await fetch('/admin/api/simulate-event', {
-            method: 'POST',
-            headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
-        });
-        if (!response.ok) throw new Error('The security event could not be recorded.');
-        await loadOverview();
-        switchTab('audit');
-    } catch (error) {
-        window.alert(error.message);
-    }
-});
+document.querySelector('[data-tab="sessions"] .nav-badge')?.replaceChildren('—');
+document.querySelector('[data-tab="recovery"] .nav-badge')?.replaceChildren('—');
+document.querySelector('#view-sessions .panel-header .badge')?.replaceChildren('— active');
+document.querySelector('#view-recovery .panel-header .badge')?.replaceChildren('— pending');
 
 document.querySelector('#emergency-lockdown')?.addEventListener('click', async (event) => {
     const button = event.currentTarget;

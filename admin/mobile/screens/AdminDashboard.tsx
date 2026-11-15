@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { AdminDevice, AdminOverview, deviceAction, generateBypassCode, getOverview, restoreAccess, triggerLockdown } from '../api/client';
+import { AdminDevice, AdminOverview, deviceAction, generateBypassCode, getAdminApiBaseUrl, getOverview, restoreAccess, triggerLockdown } from '../api/client';
 import { ThemeProvider, ThemeTokens, useTheme } from '../theme/ThemeContext';
 
 function Key({ label, onPress, tone = 'neutral' }: { label: string; onPress: () => void; tone?: 'danger' | 'primary' | 'neutral' }) {
@@ -16,7 +16,7 @@ function DashboardContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  const load = useCallback(async () => { try { const response = await getOverview(); setOverview(response.data); setMessage(''); } catch (_) { setMessage('Admin server unavailable. Check EXPO_PUBLIC_ADMIN_API_URL.'); } }, []);
+  const load = useCallback(async () => { try { const response = await getOverview(); setOverview(response.data); setMessage(''); } catch (_) { setMessage(`Admin server unavailable: ${getAdminApiBaseUrl()}`); } }, []);
   useEffect(() => { load(); }, [load]);
   const run = async (operation: () => Promise<unknown>, success: string) => { setBusy(true); try { await operation(); setMessage(success); await load(); } catch (error: any) { setMessage(error?.response?.data?.message ?? 'Action could not be completed.'); } finally { setBusy(false); } };
   const confirm = (title: string, body: string, operation: () => Promise<unknown>, success: string) => Alert.alert(title, body, [{ text: 'Cancel', style: 'cancel' }, { text: 'Confirm', style: 'destructive', onPress: () => run(operation, success) }]);
