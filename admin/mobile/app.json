@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "SecureTS Admin",
+    "slug": "securets-admin",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "securets-admin",
+    "userInterfaceStyle": "dark",
+    "plugins": ["expo-secure-store", "expo-web-browser", "expo-font"],
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "barStyle": "light-content",
+      "backgroundColor": "#0E1326"
+    }
+  }
+}

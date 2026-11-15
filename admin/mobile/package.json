@@ -1,0 +1,37 @@
+{
+  "name": "securets-admin-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ip": "node scripts/detect-lan-ip.js",
+    "start": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' npx expo start --port 8082",
+    "start:admin": "npm run start",
+    "start:tailscale": "npm run ip:tailscale && cross-env NODE_OPTIONS='--max-old-space-size=4096' npx expo start --port 8082 -c",
+    "ip:tailscale": "node scripts/detect-lan-ip.js --tailscale",
+    "android": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' npx expo start --port 8082 --android",
+    "ios": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' npx expo start --port 8082 --ios",
+    "web": "npm run ip && cross-env NODE_OPTIONS='--max-old-space-size=4096' npx expo start --port 8082 --web"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
+    "axios": "^1.7.9",
+    "expo": "~58.0.23",
+    "expo-constants": "~58.0.13",
+    "expo-font": "~58.0.11",
+    "expo-notifications": "~58.1.6",
+    "expo-secure-store": "~58.0.2",
+    "expo-web-browser": "~58.0.7",
+    "pusher-js": "^8.6.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-web": "~0.21.4"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@types/react": "~19.3.0",
+    "cross-env": "^10.1.0",
+    "typescript": "~6.0.3"
+  }
+}
