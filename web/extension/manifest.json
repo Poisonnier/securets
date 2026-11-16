@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "SecureTS Gate",
+  "version": "1.0.0",
+  "description": "Routes direct visits to the URLs you protect in SecureTS through their SecureTS gate.",
+  "permissions": ["webNavigation", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SecureTS Gate"
+  },
+  "options_page": "options.html"
+}

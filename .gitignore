@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /.phpunit.cache
 /node_modules
 /public/build
@@ -13,19 +14,38 @@ mobile/vendor/
 admin/web/vendor/
 admin/web/node_modules/
 admin/mobile/node_modules/
+=======
+# Laravel application (web/)
+/web/vendor
+/web/node_modules
+/web/public/build
+/web/public/fonts-manifest.dev.json
+/web/public/hot
+/web/public/storage
+/web/storage/*.key
+/web/storage/pail
+/web/auth.json
+/web/.phpunit.cache
+/web/.phpunit.result.cache
+/web/.phpactor.json
+
+# Expo application (mobile/)
+/mobile/node_modules
+/mobile/.expo
+
+# Local environment files
+>>>>>>> 0cc6ca1b23e469a532601390fc6a1637021919e2
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
+
+# Editors and tooling
 /.fleet
 /.idea
 /.nova
 /.vscode
 /.zed
-/mobile/.expo
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log

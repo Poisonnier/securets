@@ -53,7 +53,7 @@ return [
         ],
         'ultra' => [
             'label' => 'Ultra',
-            'price_label' => '$10 / month',
+            'price_label' => '$20 / month',
             'limit' => 20,
             'color' => '#8B5CF6',
         ],

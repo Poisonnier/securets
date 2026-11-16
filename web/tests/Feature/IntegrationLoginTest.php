@@ -111,22 +111,70 @@ test('the owner can decline a pending login', function () {
         ]);
 });
 
-test('the hosted gate collects credentials on first visit', function () {
+test('the hosted gate does not request external account credentials', function () {
     $user = User::factory()->create();
     $integration = makeIntegration($user);
 
     $this->get('/i/'.$integration->gate_token)
         ->assertOk()
-        ->assertSee('First-time setup');
+        ->assertSee('First gate visit')
+        ->assertSee('Direct sign-ins on the external site bypass this gate.')
+        ->assertSee('Do not enter your external account password here.')
+        ->assertDontSee('name="credential_username"')
+        ->assertDontSee('name="credential_password"');
 
-    $this->postJson('/i/'.$integration->gate_token, [
-        'credential_username' => 'alex@example.com',
-        'credential_password' => 'not-stored',
-    ], ['X-CSRF-TOKEN' => session()->token()])
+    $this->postJson('/i/'.$integration->gate_token, [], ['X-CSRF-TOKEN' => session()->token()])
         ->assertOk()
         ->assertJson(['status' => 'auto', 'is_first' => true]);
 
-    expect(LoginEvent::first()->credential_username)->toBe('alex@example.com');
+    expect(LoginEvent::first()->credential_username)->toBeNull();
+});
+
+test('the hosted gate rejects external account credentials', function () {
+    $user = User::factory()->create();
+    $integration = makeIntegration($user);
+
+    $this->postJson('/i/'.$integration->gate_token, [
+        'credential_username' => 'alex@example.com',
+        'credential_password' => 'not-a-real-password',
+    ], ['X-CSRF-TOKEN' => session()->token()])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['credential_username', 'credential_password']);
+
+    $this->assertDatabaseCount('login_events', 0);
+});
+
+test('later hosted gate visits wait for mobile approval before exposing the target URL', function () {
+    $user = User::factory()->create();
+    $integration = makeIntegration($user);
+
+    $this->postJson('/i/'.$integration->gate_token, [])
+        ->assertOk()
+        ->assertJson(['status' => 'auto']);
+
+    $pending = $this->postJson('/i/'.$integration->gate_token, [])
+        ->assertOk()
+        ->assertJson([
+            'status' => 'pending',
+            'requires_approval' => true,
+            'redirect_url' => null,
+        ]);
+
+    $eventId = $pending->json('event_id');
+    $this->getJson("/i/{$integration->gate_token}/events/{$eventId}")
+        ->assertOk()
+        ->assertJson(['status' => 'pending', 'redirect_url' => null]);
+
+    Sanctum::actingAs($user);
+    $this->patchJson('/api/login-events/'.$eventId.'/respond', ['decision' => 'approved'])
+        ->assertOk();
+
+    $this->getJson("/i/{$integration->gate_token}/events/{$eventId}")
+        ->assertOk()
+        ->assertJson([
+            'status' => 'approved',
+            'redirect_url' => 'https://target.example/login',
+        ]);
 });
 
 test('the hosted gate shows the linked app area beside the login flow', function () {

@@ -144,13 +144,16 @@ class IntegrationController extends Controller
         return $this->waitForEventResolution($event);
     }
 
-    public function gateShow(Integration $integration): View
+    public function gateShow(Request $request, Integration $integration): View
     {
         abort_unless($integration->is_active, 403);
 
         return view('gate', [
             'integration' => $integration,
             'isFirst' => ! $integration->hasCompletedFirstLogin(),
+            // ?ext=1 is set by the SecureTS browser extension: stay on this tab and
+            // continue to the target URL automatically once the visit is approved.
+            'ext' => $request->boolean('ext'),
         ]);
     }
 
@@ -159,9 +162,9 @@ class IntegrationController extends Controller
         abort_unless($integration->is_active, 403);
 
         $isFirst = ! $integration->hasCompletedFirstLogin();
-        $data = $request->validate([
-            'credential_username' => $isFirst ? 'required|string|max:255' : 'nullable|string|max:255',
-            'credential_password' => $isFirst ? 'required|string|max:255' : 'nullable|string',
+        $request->validate([
+            'credential_username' => 'prohibited',
+            'credential_password' => 'prohibited',
         ]);
 
         // ── Deduplication guard ──────────────────────────────────────────────
@@ -182,11 +185,7 @@ class IntegrationController extends Controller
             }
         }
 
-        $event = $this->recordLoginAttempt(
-            $integration,
-            $request,
-            $data['credential_username'] ?? null,
-        );
+        $event = $this->recordLoginAttempt($integration, $request);
 
         return response()->json($this->eventPayload($event));
     }

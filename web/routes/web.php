@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
@@ -62,6 +63,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/subscription/checkout', [SubscriptionController::class, 'createCheckoutSession'])->name('subscription.checkout');
         // Stripe-hosted billing portal (cancel / update card)
         Route::post('/subscription/portal', [SubscriptionController::class, 'billingPortal'])->name('subscription.portal');
+
+        // Browser extension pairing token
+        Route::get('/extension-token', [ExtensionController::class, 'showToken']);
+        Route::post('/extension-token/rotate', [ExtensionController::class, 'rotateToken']);
     });
 
     // ── Subscription pages ────────────────────────────────────────────────────

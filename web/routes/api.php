@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\MobileAuthController;
 use App\Http\Controllers\SubscriptionController;
@@ -58,6 +59,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/subscription/status', [SubscriptionController::class, 'status']);
     Route::post('/subscription/checkout', [SubscriptionController::class, 'createCheckoutSession']);
     Route::post('/subscription/portal', [SubscriptionController::class, 'billingPortal']);
+});
+
+// ── Browser extension (pairing token, read-only) ──────────────────────────────
+Route::middleware('throttle:60,1')->prefix('extension')->group(function () {
+    Route::get('/config', [ExtensionController::class, 'config']);
 });
 
 // ── Stripe Webhook (public — no auth, no CSRF) ────────────────────────────────

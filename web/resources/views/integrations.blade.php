@@ -34,6 +34,10 @@
             class="tab-btn px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-slate-400 hover:text-slate-100 hover:bg-[#1C2236] border border-transparent cursor-pointer">
             Login History
         </button>
+        <button type="button" id="tab-btn-extension" onclick="showTab('extension', this)"
+            class="tab-btn px-3 py-1.5 rounded-md text-xs font-medium transition-colors text-slate-400 hover:text-slate-100 hover:bg-[#1C2236] border border-transparent cursor-pointer">
+            Browser Extension
+        </button>
     </div>
 
     {{-- TAB: Connected Apps --}}
@@ -172,6 +176,51 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    {{-- TAB: Browser Extension --}}
+    <div id="tab-extension" class="tab-panel hidden">
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">Browser Extension</span>
+            <h2 class="text-sm font-semibold text-white mt-1">Gate direct visits in your browser</h2>
+            <p class="text-xs text-slate-400 mt-1 max-w-2xl">
+                Load the SecureTS extension in Chrome or Edge and pair it with the token below. Every direct visit to one of
+                your protected URLs is then routed through its SecureTS gate instead of loading the app straight away.
+            </p>
+
+            <div class="mt-5">
+                <label for="extensionToken" class="block text-xs font-medium text-slate-300 mb-1.5">Extension pairing token</label>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input type="text" id="extensionToken" readonly value="Loading…"
+                        class="flex-1 bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-[#4063D7]">
+                    <button type="button" onclick="copyExtensionToken()"
+                        class="bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                        Copy Token
+                    </button>
+                    <button type="button" onclick="rotateExtensionToken()"
+                        class="bg-[#0E1326] hover:border-red-400/60 text-red-300 text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-400 cursor-pointer">
+                        Regenerate
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-2">
+                    This token only lets the extension read your protected URLs and gate links. Regenerating it signs out every
+                    browser that is already paired.
+                </p>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-gray-700/50">
+                <span class="block text-xs font-medium text-slate-300 mb-2">Install the extension</span>
+                <ol class="text-xs text-slate-400 space-y-1.5 list-decimal list-inside">
+                    <li>Open <span class="font-mono text-slate-200">chrome://extensions</span> and turn on <span class="text-slate-200">Developer mode</span>.</li>
+                    <li>Choose <span class="text-slate-200">Load unpacked</span> and select the <span class="font-mono text-slate-200">web/extension</span> folder in the repository.</li>
+                    <li>Open the extension options, paste your SecureTS base URL and the token above, then save.</li>
+                    <li>Restart the Laravel server after the migration, then verify the token shows in the box above.</li>
+                </ol>
+                <p class="text-[11px] text-slate-500 mt-3">
+                    First gate visit through the extension is auto-approved. Later visits wait for Approve or Decline on your phone.
+                </p>
             </div>
         </div>
     </div>
@@ -339,6 +388,7 @@ function showTab(name, btn) {
     document.getElementById('tab-' + name).classList.remove('hidden');
     btn.className = 'tab-btn px-3 py-1.5 rounded-md text-xs font-medium transition-colors bg-[#4063D7]/20 text-[#00BBFF] border border-[#4063D7]/40 cursor-pointer';
     if (name === 'history') loadHistory();
+    if (name === 'extension') loadExtensionToken();
 }
 
 // ── Add Application Modal ────────────────────────────────────────────────────
@@ -585,6 +635,52 @@ function copyFromButton(button) {
     navigator.clipboard.writeText(value)
         .then(() => setFlash('success', msg))
         .catch(() => setFlash('error', 'Could not copy to clipboard.'));
+}
+
+// ── Browser Extension Pairing ────────────────────────────────────────────────
+let extensionTokenCache = null;
+
+async function loadExtensionToken() {
+    const input = document.getElementById('extensionToken');
+    if (!input) return;
+
+    try {
+        const res = await fetch('/web/extension-token', { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        extensionTokenCache = data.token ?? null;
+        input.value = data.token ?? 'Unavailable';
+    } catch (_) {
+        input.value = 'Unavailable';
+        setFlash('error', 'Could not load the extension pairing token.');
+    }
+}
+
+function copyExtensionToken() {
+    if (!extensionTokenCache) {
+        setFlash('error', 'Pairing token is not loaded yet.');
+        return;
+    }
+    navigator.clipboard.writeText(extensionTokenCache)
+        .then(() => setFlash('success', 'Extension pairing token copied.'))
+        .catch(() => setFlash('error', 'Could not copy to clipboard.'));
+}
+
+async function rotateExtensionToken() {
+    try {
+        const res = await fetch('/web/extension-token/rotate', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        extensionTokenCache = data.token ?? null;
+        const input = document.getElementById('extensionToken');
+        if (input) input.value = data.token ?? 'Unavailable';
+        setFlash('success', 'New pairing token generated. Paired browsers must be updated.');
+    } catch (_) {
+        setFlash('error', 'Could not regenerate the pairing token.');
+    }
 }
 
 function escapeHtml(str) {
