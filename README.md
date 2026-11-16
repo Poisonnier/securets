@@ -31,7 +31,7 @@ A high-speed, monorepo-based security command center and active session manageme
 - **Push Login Approvals:** Instant, interactive approve/deny prompts dispatched via high-throughput Laravel Reverb WebSockets and Expo Push Notifications (target p95 latency < 2s).
 - **Emergency "Swipe-to-Lockdown" Kill Switch:** Rapid one-action gesture that immediately invalidates all active sessions, revokes access tokens, and freezes connected Target App authorizations.
 - **Biometric Admin Gates:** Local FaceID / TouchID / biometric authentication guarding high-security operations, token rotations, and sensitive approval confirmations.
-- **TOTP Fallback:** Built-in RFC 6238 time-based one-time password generator (30-second rotating codes with visual countdown indicator) guaranteeing uninterrupted offline authentication.
+- **TOTP Fallback:** Built-in RFC 6238 time-based one-time password generator (30-second rotating codes with visual countdown indicator) guaranteeing uninterrupted offline authentication. 
 
 ---
 
