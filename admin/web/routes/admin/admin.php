@@ -18,14 +18,13 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(EmergencyLockdownMiddleware::class)->prefix('admin')->group(function () {
     Route::get('/api/overview', [AdminDashboardController::class, 'overview'])->name('admin.api.overview');
     Route::post('/api/devices/{device}/action', [AdminDashboardController::class, 'deviceAction'])->name('admin.api.devices.action');
-    Route::post('/api/simulate-event', [AdminDashboardController::class, 'simulateEvent'])->name('admin.api.simulate-event');
     Route::post('/api/system/lockdown', [AdminDashboardController::class, 'lockdown'])->name('admin.api.system.lockdown');
     Route::post('/api/system/unlock', [AdminDashboardController::class, 'unlock'])->name('admin.api.system.unlock');
     Route::get('/users', fn () => view('admin.section', ['section' => 'users']))->name('admin.users');
     Route::get('/sessions', fn () => view('admin.section', ['section' => 'sessions']))->name('admin.sessions');
     Route::get('/recovery', fn () => view('admin.section', ['section' => 'recovery']))->name('admin.recovery');
     Route::get('/audit', fn () => view('admin.section', ['section' => 'audit']))->name('admin.audit');
-    Route::get('/status', fn () => view('admin.section', ['section' => 'status']))->name('admin.status');
+    Route::get('/status', [AdminDashboardController::class, 'status'])->name('admin.status');
     // ── Security Notifications Center ──
     Route::get('/notifications', [AdminDashboardController::class, 'notifications'])->name('admin.notifications');
 

@@ -9,10 +9,11 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AdminDashboardController extends Controller
 {
@@ -29,6 +30,49 @@ class AdminDashboardController extends Controller
         return response()->json($this->dashboardPayload());
     }
 
+    public function status(): View
+    {
+        $systemUrl = rtrim((string) env('SYSTEM_APP_URL', 'http://localhost:8000'), '/');
+
+        $apiStartedAt = microtime(true);
+        try {
+            $response = Http::timeout(3)->acceptJson()->get($systemUrl.'/up');
+            $systemApi = [
+                'status' => $response->successful() ? 'Operational' : 'Unavailable',
+                'latency_ms' => (int) round((microtime(true) - $apiStartedAt) * 1000),
+                'endpoint' => $systemUrl.'/up',
+            ];
+        } catch (Throwable $exception) {
+            $systemApi = [
+                'status' => 'Unavailable',
+                'latency_ms' => null,
+                'endpoint' => $systemUrl.'/up',
+            ];
+        }
+
+        $databaseStartedAt = microtime(true);
+        try {
+            DB::connection()->select('select 1');
+            $systemDatabase = [
+                'status' => 'Operational',
+                'latency_ms' => (int) round((microtime(true) - $databaseStartedAt) * 1000),
+                'driver' => DB::connection()->getDriverName(),
+            ];
+        } catch (Throwable $exception) {
+            $systemDatabase = [
+                'status' => 'Unavailable',
+                'latency_ms' => null,
+                'driver' => DB::connection()->getDriverName(),
+            ];
+        }
+
+        return view('admin.section', [
+            'section' => 'status',
+            'systemApi' => $systemApi,
+            'systemDatabase' => $systemDatabase,
+        ]);
+    }
+
     public function lockdown(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -43,7 +87,11 @@ class AdminDashboardController extends Controller
             'reason' => $data['reason'] ?? 'Emergency security response',
         ];
 
-        Cache::forever('admin.emergency_lockdown', $state);
+        abort_unless(Schema::hasTable('system_controls'), 503, 'Run the system database migrations first.');
+        DB::table('system_controls')->updateOrInsert(
+            ['key' => 'system_lockdown'],
+            ['value' => json_encode($state), 'updated_at' => now(), 'created_at' => now()]
+        );
 
         $sessionsRevoked = Schema::hasTable('sessions')
             ? DB::table('sessions')->delete()
@@ -72,7 +120,10 @@ class AdminDashboardController extends Controller
             'confirmation' => ['required', 'string', 'in:UNLOCK'],
         ]);
 
-        Cache::forget('admin.emergency_lockdown');
+        abort_unless(Schema::hasTable('system_controls'), 503, 'Run the system database migrations first.');
+        DB::table('system_controls')
+            ->where('key', 'system_lockdown')
+            ->update(['value' => json_encode(['active' => false]), 'updated_at' => now()]);
         $this->recordAudit('Emergency Lockdown Deactivated', 'Admin application', 'info');
 
         return response()->json([
@@ -116,14 +167,6 @@ class AdminDashboardController extends Controller
         });
 
         return response()->json(['message' => 'Device action completed.', 'status' => $status]);
-    }
-
-    public function simulateEvent(): JsonResponse
-    {
-        abort_unless(Schema::hasTable('admin_audit_events'), 503, 'Run the admin database migrations first.');
-        $event = $this->recordAudit('Simulated Security Event', 'sim_event_'.Str::lower(Str::random(8)), 'warning');
-
-        return response()->json(['event' => $event]);
     }
 
     private function dashboardPayload(): array
@@ -221,9 +264,24 @@ class AdminDashboardController extends Controller
             'devices' => $deviceRows,
             'users' => $userRows,
             'sessions' => $sessionRows,
-            'lockdown' => Cache::get('admin.emergency_lockdown', ['active' => false]),
+            'lockdown' => $this->systemLockdownState(),
             'audit' => $this->auditRows(),
         ];
+    }
+
+    private function systemLockdownState(): array
+    {
+        if (! Schema::hasTable('system_controls')) {
+            return ['active' => false];
+        }
+
+        $rawState = DB::table('system_controls')
+            ->where('key', 'system_lockdown')
+            ->value('value');
+
+        return is_string($rawState)
+            ? (json_decode($rawState, true) ?: ['active' => false])
+            : ['active' => false];
     }
 
     private function auditRows(): array

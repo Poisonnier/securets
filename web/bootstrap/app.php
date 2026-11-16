@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/*',
             'stripe/webhook',
         ]);
+        $middleware->append(\App\Http\Middleware\SystemLockdownMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

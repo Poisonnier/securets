@@ -56,12 +56,12 @@
         @if ($section === 'status')
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Global System Status">
                 <div class="bg-surface border border-border rounded-xl p-6 flex flex-col justify-between gap-4">
-                    <div class="flex items-center justify-between"><span class="text-sm font-medium text-text-muted">Access Request API Latency (p95)</span><span class="text-xs font-medium text-accent">● Operational</span></div>
-                    <div class="flex items-baseline justify-between"><span class="text-2xl font-semibold font-mono text-text">142 ms</span><span class="text-xs text-text-muted">Target: &lt; 2000 ms</span></div>
+                    <div class="flex items-center justify-between"><span class="text-sm font-medium text-text-muted">System API</span><span class="text-xs font-medium {{ $systemApi['status'] === 'Operational' ? 'text-accent' : 'text-red-400' }}">● {{ $systemApi['status'] }}</span></div>
+                    <div class="flex items-baseline justify-between"><span class="text-2xl font-semibold font-mono text-text">{{ $systemApi['latency_ms'] !== null ? $systemApi['latency_ms'].' ms' : '—' }}</span><span class="text-xs text-text-muted">{{ $systemApi['endpoint'] }}</span></div>
                 </div>
                 <div class="bg-surface border border-border rounded-xl p-6 flex flex-col justify-between gap-4">
-                    <span class="text-sm font-medium text-text-muted">Database Health (Supabase Primary)</span>
-                    <div class="flex items-baseline justify-between"><span class="text-2xl font-semibold font-mono text-text">99.98%</span><span class="text-xs font-mono text-text-muted">Pool: 18 / 100 active</span></div>
+                    <div class="flex items-center justify-between"><span class="text-sm font-medium text-text-muted">System Database</span><span class="text-xs font-medium {{ $systemDatabase['status'] === 'Operational' ? 'text-accent' : 'text-red-400' }}">● {{ $systemDatabase['status'] }}</span></div>
+                    <div class="flex items-baseline justify-between"><span class="text-2xl font-semibold font-mono text-text">{{ $systemDatabase['latency_ms'] !== null ? $systemDatabase['latency_ms'].' ms' : '—' }}</span><span class="text-xs text-text-muted">{{ strtoupper($systemDatabase['driver']) }} · SELECT 1</span></div>
                 </div>
                 <div class="bg-surface border border-border rounded-xl p-6 flex flex-col justify-between gap-4">
                     <div><h2 class="text-sm font-semibold text-text">Emergency Lockdown</h2><p class="text-xs text-text-muted mt-1">Pause all new Target App authentication requests globally.</p></div>
