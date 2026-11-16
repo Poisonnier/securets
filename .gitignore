@@ -7,10 +7,12 @@
 /storage/*.key
 /storage/pail
 /vendor
-web/vendor
-mobile/vendor
-admin/web/vendor
-mobile/vendor
+web/vendor/
+web/node_modules/
+mobile/vendor/
+admin/web/vendor/
+admin/web/node_modules/
+admin/mobile/node_modules/
 .env
 .env.backup
 .env.production
