@@ -26,7 +26,7 @@ A high-speed, monorepo-based security command center and active session manageme
 
 ### Mobile App (The Command Center)
 
-![Mobile Layout](src/gif/Full%20mobile%20layout%20%28buggy%29.gif)
+![Mobile Layout](src/gif/Full%20mobile%20layout%20%28buggy%29.gif) 
 
 - **Push Login Approvals:** Instant, interactive approve/deny prompts dispatched via high-throughput Laravel Reverb WebSockets and Expo Push Notifications (target p95 latency < 2s).
 - **Emergency "Swipe-to-Lockdown" Kill Switch:** Rapid one-action gesture that immediately invalidates all active sessions, revokes access tokens, and freezes connected Target App authorizations.
