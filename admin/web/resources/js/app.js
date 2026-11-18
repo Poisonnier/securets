@@ -96,10 +96,10 @@ function renderUsers(users = []) {
     if (!body) return;
     body.innerHTML = users.length ? users.map((user) => `<tr>
         <td><div class="font-medium text-white">${escapeHtml(user.name)}</div><div class="text-xs text-slate-500">${escapeHtml(user.email)}</div></td>
-        <td><span class="badge badge-slate">Not recorded</span></td>
-        <td class="text-slate-500">Not recorded</td>
+        <td><span class="badge badge-slate">${escapeHtml(user.plan ?? '—')}</span></td>
+        <td>${Number(user.apps ?? 0).toLocaleString()}</td>
         <td>${Number(user.devices ?? 0).toLocaleString()} device${Number(user.devices ?? 0) === 1 ? '' : 's'}</td>
-        <td class="text-slate-500">—</td>
+        <td class="text-slate-500">${escapeHtml(user.created_at ?? '—')}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="text-slate-500">No active users found.</td></tr>';
 }
 
@@ -108,8 +108,8 @@ function renderSessions(sessions = []) {
     if (!body) return;
     body.innerHTML = sessions.length ? sessions.map((session) => `<tr>
         <td>${escapeHtml(session.user)}</td>
+        <td class="text-slate-400">${escapeHtml(session.device ?? 'Unknown')}</td>
         <td class="text-slate-400">${escapeHtml(session.client)}</td>
-        <td class="text-slate-400">Session</td>
         <td class="font-mono text-xs">${escapeHtml(session.ip)}</td>
         <td class="text-slate-500">${escapeHtml(session.last_seen)}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="text-slate-500">No active sessions in the last 24 hours.</td></tr>';
@@ -143,39 +143,31 @@ function applyMetrics(metrics) {
     document.querySelector('#metric-health').textContent = metrics.health ?? '—';
 }
 
-function applyLockdown(state = {}) {
-    const panel = document.querySelector('#emergency-lockdown-panel');
-    const badge = document.querySelector('#lockdown-status');
-    const message = document.querySelector('#lockdown-message');
-    const details = document.querySelector('#lockdown-details');
-    const button = document.querySelector('#emergency-lockdown');
-    if (!panel || !badge || !message || !details || !button) return;
-
-    const active = Boolean(state.active);
-    panel.classList.toggle('is-active', active);
-    badge.className = `badge ${active ? 'badge-crimson' : 'badge-slate'}`;
-    badge.textContent = active ? 'ACTIVE' : 'Inactive';
-    message.textContent = active ? 'Emergency lockdown is active.' : 'System operating normally.';
-    details.textContent = active
-        ? `${state.reason || 'Emergency security response'} · Activated ${state.activated_at || 'recently'}`
-        : 'Lockdown is reversible after the incident is contained.';
-    button.textContent = active ? 'Deactivate Lockdown' : 'Activate Lockdown';
-    button.dataset.active = active ? 'true' : 'false';
+function applyStatus(system = {}, apiOk = true, apiLatency = null) {
+    const db = system.database ?? {};
+    const set = (selector, text) => { const el = document.querySelector(selector); if (el) el.textContent = text; };
+    set('#status-api', apiOk ? 'Operational' : 'Unavailable');
+    set('#status-api-meta', apiLatency !== null ? `/admin/api/overview · ${apiLatency} ms` : '/admin/api/overview');
+    set('#status-db', db.status ?? 'Unavailable');
+    set('#status-db-meta', db.latency_ms != null ? `${String(db.driver ?? '').toUpperCase()} · ${db.latency_ms} ms` : 'No response');
+    set('#sidebar-health', apiOk && db.status === 'Operational' ? 'System Operational' : 'System Degraded');
 }
 
 async function loadOverview() {
+    const startedAt = performance.now();
     try {
         const response = await fetch('/admin/api/overview', { headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error('Overview unavailable');
         const data = await response.json();
+        applyStatus(data.system, true, Math.round(performance.now() - startedAt));
         applyMetrics(data.metrics);
         renderDevices(data.devices);
         renderUsers(data.users);
         renderSessions(data.sessions);
         renderRecovery(data.devices);
         renderAudit(data.audit);
-        applyLockdown(data.lockdown);
     } catch (error) {
+        applyStatus({}, false);
         console.error(error);
     }
 }
@@ -184,38 +176,6 @@ document.querySelector('[data-tab="sessions"] .nav-badge')?.replaceChildren('—
 document.querySelector('[data-tab="recovery"] .nav-badge')?.replaceChildren('—');
 document.querySelector('#view-sessions .panel-header .badge')?.replaceChildren('— active');
 document.querySelector('#view-recovery .panel-header .badge')?.replaceChildren('— pending');
-
-document.querySelector('#emergency-lockdown')?.addEventListener('click', async (event) => {
-    const button = event.currentTarget;
-    const active = button.dataset.active === 'true';
-    const confirmationWord = active ? 'UNLOCK' : 'LOCKDOWN';
-    const action = active ? 'deactivate the emergency lockdown' : 'activate emergency lockdown';
-
-    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
-    const confirmation = window.prompt(`Type ${confirmationWord} to continue.`);
-    if (confirmation !== confirmationWord) {
-        window.alert(`Confirmation failed. Type ${confirmationWord} exactly.`);
-        return;
-    }
-
-    const reason = active ? undefined : window.prompt('Briefly describe the suspected breach:', 'Suspected security breach');
-    button.disabled = true;
-    try {
-        const response = await fetch(active ? '/admin/api/system/unlock' : '/admin/api/system/lockdown', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
-            body: JSON.stringify(active ? { confirmation } : { confirmation, reason }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'The lockdown state could not be changed.');
-        applyLockdown(data.lockdown);
-        await loadOverview();
-    } catch (error) {
-        window.alert(error.message);
-    } finally {
-        button.disabled = false;
-    }
-});
 
 const search = document.querySelector('#global-search');
 search?.addEventListener('input', () => {

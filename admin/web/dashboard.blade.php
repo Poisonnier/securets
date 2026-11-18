@@ -17,7 +17,7 @@
                     </div>
                     <div>
                         <div class="text-xs font-bold tracking-[0.18em] text-white">SECURITY ADMIN</div>
-                        <div class="flex items-center gap-1.5 mt-1 text-[11px] text-emerald"><span class="status-dot"></span> System Operational</div>
+                        <div class="flex items-center gap-1.5 mt-1 text-[11px] text-emerald"><span class="status-dot"></span> <span id="sidebar-health">Checking…</span></div>
                     </div>
                 </div>
             </div>
@@ -72,25 +72,14 @@
                         <section class="panel"><div class="panel-header"><div><h2>Recent Security Audit</h2><p>Latest authentication and administrative events</p></div><button type="button" data-tab="audit" class="text-xs text-primary hover:text-white">View Full Audit Log →</button></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Target Resource</th><th>Severity / Status</th></tr></thead><tbody id="audit-snapshot"></tbody></table></div></section>
             </div>
 
-            <div id="view-users" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>User Management</h2><p>Registered accounts, subscription tiers, and connected applications</p></div><input class="table-filter" data-filter="users" type="search" placeholder="Filter by email..."></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>Account</th><th>Subscription</th><th>Connected Apps</th><th>Paired Devices</th><th>Action</th></tr></thead><tbody><tr><td colspan="5" class="text-slate-500">Loading users…</td></tr></tbody></table></div></section></div>
-            <div id="view-sessions" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>Active Sessions</h2><p>Authenticated web sessions and paired mobile instances</p></div><span id="sessions-summary" class="badge badge-blue">— active</span></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>User</th><th>OS / Device</th><th>Browser / Client</th><th>IP Address</th><th>Actions</th></tr></thead><tbody><tr><td colspan="5" class="text-slate-500">Loading sessions…</td></tr></tbody></table></div></section></div>
+            <div id="view-users" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>User Management</h2><p>Registered accounts, subscription tiers, and connected applications</p></div><input class="table-filter" data-filter="users" type="search" placeholder="Filter by email..."></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>Account</th><th>Subscription</th><th>Connected Apps</th><th>Paired Devices</th><th>Joined</th></tr></thead><tbody><tr><td colspan="5" class="text-slate-500">Loading users…</td></tr></tbody></table></div></section></div>
+            <div id="view-sessions" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>Active Sessions</h2><p>Authenticated web sessions and paired mobile instances</p></div><span id="sessions-summary" class="badge badge-blue">— active</span></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>User</th><th>OS / Device</th><th>Browser / Client</th><th>IP Address</th><th>Last Seen</th></tr></thead><tbody><tr><td colspan="5" class="text-slate-500">Loading sessions…</td></tr></tbody></table></div></section></div>
             <div id="view-recovery" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>Lost Device Recovery</h2><p>Pending instance token revocations</p></div><span id="recovery-summary" class="badge badge-amber">— pending</span></div><div class="recovery-grid"><div class="recovery-card"><span class="text-slate-500">Loading recovery devices…</span></div></div></section></div>
-            <div id="view-audit" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>Security Audit Trail</h2><p>Live authentication and verification stream</p></div><span class="live-label"><span class="status-dot"></span> Live</span></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Target Resource</th><th>Severity / Status</th></tr></thead><tbody id="audit-full"><tr><td>10:42:18 UTC</td><td>Security Engine</td><td>Multiple failed TOTP attempts</td><td>r.vance@citadel.org</td><td><span class="badge badge-crimson">Action Required</span></td></tr><tr><td>10:39:04 UTC</td><td>Owner</td><td>Push Approval Denied</td><td>req_01jc8...9k</td><td><span class="badge badge-slate">Logged</span></td></tr><tr><td>10:21:50 UTC</td><td>s.lindqvist</td><td>Target App Secret Rotated</td><td>int_prod_21f</td><td><span class="badge badge-blue">Completed</span></td></tr></tbody></table></div></section></div>
+            <div id="view-audit" data-view class="admin-view"><section class="panel"><div class="panel-header"><div><h2>Security Audit Trail</h2><p>Live authentication and verification stream</p></div><span class="live-label"><span class="status-dot"></span> Live</span></div><div class="overflow-x-auto"><table class="data-table"><thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Target Resource</th><th>Severity / Status</th></tr></thead><tbody id="audit-full"><tr><td colspan="5" class="text-slate-500">Loading audit events…</td></tr></tbody></table></div></section></div>
             <div id="view-status" data-view class="admin-view">
-                <section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
-                    <div class="panel status-card"><span>Authentication API</span><strong class="text-emerald">Operational</strong><small>System API responding</small></div>
-                    <div class="panel status-card"><span>Database Health</span><strong>Operational</strong><small>Configured system database</small></div>
-                    <div class="panel status-card"><span>Realtime Transport</span><strong>Not configured</strong><small>Polling dashboard data</small></div>
-                </section>
-                <section id="emergency-lockdown-panel" class="panel emergency-panel" aria-labelledby="emergency-lockdown-title">
-                    <div class="panel-header">
-                        <div><h2 id="emergency-lockdown-title">Emergency Lockdown</h2><p>Freeze the admin application during a suspected breach. This revokes active sessions and access tokens.</p></div>
-                        <span id="lockdown-status" class="badge badge-slate">Inactive</span>
-                    </div>
-                    <div class="emergency-actions">
-                        <div><strong id="lockdown-message">System operating normally.</strong><small id="lockdown-details">Lockdown is reversible after the incident is contained.</small></div>
-                        <button type="button" id="emergency-lockdown" class="danger-button">Activate Lockdown</button>
-                    </div>
+                <section class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                    <div class="panel status-card"><span>Admin API</span><strong id="status-api">—</strong><small id="status-api-meta">Checking overview endpoint</small></div>
+                    <div class="panel status-card"><span>Database Health</span><strong id="status-db">—</strong><small id="status-db-meta">Checking Supabase connection</small></div>
                 </section>
             </div>
         </main>

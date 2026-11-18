@@ -93,13 +93,5 @@
 .status-card { display: flex; flex-direction: column; gap: 10px; }.status-card span, .status-card small { color: #8995B4; font-size: 12px; }.status-card strong { color: white; font-size: 20px; }
 .admin-view { display: none; }.admin-view.is-visible { display: block; }
 .table-filter { height: 36px; padding: 0 10px; border: 1px solid #303957; border-radius: 7px; outline: none; background: #0B0E18; color: white; font-size: 11px; }
-.emergency-panel { border-color: rgb(239 68 68 / .35); background: linear-gradient(135deg, rgb(127 29 29 / .16), #111525); }
-.emergency-actions { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.emergency-actions strong { display: block; color: #F8FAFC; font-size: 13px; }
-.emergency-actions small { display: block; margin-top: 5px; color: #AAB5CF; font-size: 11px; }
-.danger-button { padding: 9px 13px; border: 1px solid rgb(248 113 113 / .5); border-radius: 7px; background: rgb(127 29 29 / .55); color: #FECACA; font-size: 11px; font-weight: 600; white-space: nowrap; transition: .18s ease; }
-.danger-button:hover { border-color: #F87171; background: rgb(185 28 28 / .7); color: white; }
-.danger-button:disabled { cursor: wait; opacity: .6; }
-.emergency-panel.is-active { border-color: #F87171; box-shadow: 0 0 0 1px rgb(248 113 113 / .15), 0 14px 35px rgb(127 29 29 / .16); }
 @media (max-width: 900px) { .security-sidebar { width: 76px; }.security-sidebar .p-5 > div:not(.shield-mark), .security-sidebar nav span:not(.nav-icon), .security-sidebar .mt-auto { display: none; }.security-sidebar nav { padding: 12px; }.admin-nav-item { justify-content: center; padding: 0; }.nav-badge { display: none; }.shield-mark { margin: auto; }.recovery-grid { grid-template-columns: 1fr; } }
-@media (max-width: 640px) { .security-sidebar { display: none; }.panel { padding: 15px; }.search-box { min-width: 0; width: 100%; }.primary-button, .danger-button { width: 100%; }.panel-header, .emergency-actions { flex-direction: column; align-items: stretch; } }
+@media (max-width: 640px) { .security-sidebar { display: none; }.panel { padding: 15px; }.search-box { min-width: 0; width: 100%; }.primary-button { width: 100%; }.panel-header { flex-direction: column; align-items: stretch; } }

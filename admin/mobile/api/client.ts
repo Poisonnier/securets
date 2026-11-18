@@ -57,7 +57,6 @@ export type AdminOverview = {
   adminName: string;
   metrics: { users: number; sessions: number; devices: number; health: string };
   devices: AdminDevice[];
-  lockdown: { active: boolean; activated_at?: string; reason?: string };
   audit: Array<{ time: string; actor: string; action: string; target: string; severity: string }>;
 };
 
@@ -98,11 +97,5 @@ API.interceptors.response.use(
 const adminPath = () => adminPathFor(baseUrls[activeBaseUrlIndex]);
 
 export const getOverview = () => request(`${adminPath()}/api/overview`);
-
-export const triggerLockdown = (reason = 'Emergency response from admin mobile') =>
-  API.post(`${adminPath()}/api/system/lockdown`, { confirmation: 'LOCKDOWN', reason });
-
-export const restoreAccess = () =>
-  API.post(`${adminPath()}/api/system/unlock`, { confirmation: 'UNLOCK' });
 
 export default API;
