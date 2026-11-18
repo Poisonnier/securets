@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const normalizeBaseUrl = (value: string) => value.trim().replace(/\/$/, '');
@@ -63,6 +64,47 @@ export type AdminOverview = {
 export const getAdminApiBaseUrl = () => `${baseUrls[activeBaseUrlIndex]}${adminPathFor(baseUrls[activeBaseUrlIndex])}`;
 
 const request = (path: string, config = {}) => API.request({ ...config, url: path });
+
+// Admin bearer token. Persisted only in expo-secure-store (native); on web,
+// where SecureStore is unavailable, it is kept in memory for the session.
+const TOKEN_KEY = 'securets_admin_token';
+let authToken: string | null = null;
+
+export const loadStoredToken = async () => {
+  if (Platform.OS !== 'web') authToken = await SecureStore.getItemAsync(TOKEN_KEY);
+  return authToken;
+};
+
+const setToken = async (token: string | null) => {
+  authToken = token;
+  if (Platform.OS === 'web') return;
+  if (token) await SecureStore.setItemAsync(TOKEN_KEY, token);
+  else await SecureStore.deleteItemAsync(TOKEN_KEY);
+};
+
+export const login = async (email: string, password: string) => {
+  const response = await request(`${adminPath()}/api/login`, {
+    method: 'POST',
+    data: { email, password, device_name: `${Platform.OS} admin app` },
+  });
+  await setToken(response.data.token);
+};
+
+export const logout = async () => {
+  try {
+    if (authToken) await request(`${adminPath()}/api/logout`, { method: 'POST' });
+  } finally {
+    await setToken(null);
+  }
+};
+
+export const isUnauthorized = (error: unknown) =>
+  axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0);
+
+API.interceptors.request.use((config) => {
+  if (authToken) config.headers.Authorization = `Bearer ${authToken}`;
+  return config;
+});
 
 API.interceptors.request.use((config) => {
   const requestConfig = config as typeof config & { _adminEndpointIndex?: number };

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,6 +17,15 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('admin')->group(function () {
+    // ── Authentication (public) ──
+    Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1')->name('admin.login.attempt');
+    Route::post('/api/login', [AdminAuthController::class, 'apiLogin'])->middleware('throttle:5,1')->name('admin.api.login');
+});
+
+Route::prefix('admin')->middleware(EnsureAdmin::class)->group(function () {
+    Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+    Route::post('/api/logout', [AdminAuthController::class, 'apiLogout'])->name('admin.api.logout');
     Route::get('/api/overview', [AdminDashboardController::class, 'overview'])->name('admin.api.overview');
     Route::post('/api/devices/{device}/action', [AdminDashboardController::class, 'deviceAction'])->name('admin.api.devices.action');
     Route::get('/users', [AdminDashboardController::class, 'section'])->defaults('section', 'users')->name('admin.users');

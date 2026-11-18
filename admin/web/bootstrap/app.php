@@ -2,6 +2,8 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 
 require_once __DIR__.'/php85-carbon-compat.php';
@@ -29,10 +31,14 @@ $loader->addClassMap($sharedClasses);
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php')
-    ->withMiddleware(function (\Illuminate\Foundation\Configuration\Middleware $middleware): void {
+    ->withMiddleware(function (Middleware $middleware): void {
         // The admin mobile/web Expo client runs on a different origin.
         // Allow it to read and submit the admin API requests.
-        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->append(HandleCors::class);
+
+        // The admin mobile app logs in with credentials and receives a bearer
+        // token; it has no session, so it cannot send a CSRF token.
+        $middleware->validateCsrfTokens(except: ['admin/api/login', 'admin/api/logout']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -32,8 +32,12 @@
             </nav>
 
             <div class="mt-auto p-5 border-t border-border">
-                <div class="text-xs text-white font-medium">Admin</div>
-                <div class="text-[11px] text-slate-400 mt-1">Authenticated admin session</div>
+                <div class="text-xs text-white font-medium">{{ auth()->user()?->name ?? 'Admin' }}</div>
+                <div class="text-[11px] text-slate-400 mt-1">{{ auth()->user()?->email }}</div>
+                <form method="POST" action="{{ route('admin.logout') }}" class="mt-3">
+                    @csrf
+                    <button type="submit" class="text-[11px] text-slate-400 hover:text-white">Sign out</button>
+                </form>
             </div>
         </aside>
 

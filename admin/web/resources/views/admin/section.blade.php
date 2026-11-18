@@ -41,7 +41,10 @@
                 @endforeach
             </nav>
         </div>
-        <div class="p-6 border-t border-border text-sm text-text-muted">Root Administrator</div>
+        <div class="p-6 border-t border-border text-sm text-text-muted flex flex-col gap-2">
+            <span>{{ auth()->user()?->email }}</span>
+            <form method="POST" action="{{ route('admin.logout') }}">@csrf<button type="submit" class="min-h-11 text-xs text-text-muted hover:text-text">Sign out</button></form>
+        </div>
     </aside>
 
     <main class="flex-1 p-8 flex flex-col gap-8 overflow-y-auto">

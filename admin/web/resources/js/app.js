@@ -157,6 +157,10 @@ async function loadOverview() {
     const startedAt = performance.now();
     try {
         const response = await fetch('/admin/api/overview', { headers: { Accept: 'application/json' } });
+        if (response.status === 401 || response.status === 403) {
+            window.location.assign('/admin/login');
+            return;
+        }
         if (!response.ok) throw new Error('Overview unavailable');
         const data = await response.json();
         applyStatus(data.system, true, Math.round(performance.now() - startedAt));
