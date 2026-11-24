@@ -11,8 +11,45 @@ test('guests are sent to login when opening the integration hub', function () {
 test('the landing page links to sign in', function () {
     $this->get('/')
         ->assertOk()
-        ->assertSee('Sign In', false)
-        ->assertSee(route('login', absolute: false), false);
+        ->assertSee('Log in', false)
+        ->assertSee(route('login', absolute: false), false)
+        ->assertSee('Get Started', false)
+        ->assertSee(route('register', absolute: false), false);
+});
+
+test('registration authenticates the user and redirects to the integration hub', function () {
+    $response = $this->post('/register', [
+        'name' => 'Jane Developer',
+        'email' => 'jane@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('integrations'));
+    $this->assertAuthenticated();
+});
+
+test('dashboard renders integration name and credential username for recent login events', function () {
+    $user = User::factory()->create();
+    $integration = $user->integrations()->create([
+        'name' => 'Billing Portal',
+        'url' => 'https://billing.example/login',
+        'secret_key' => 'SECRETKEY1234567',
+        'is_active' => true,
+    ]);
+
+    $integration->loginEvents()->create([
+        'user_id' => $user->id,
+        'credential_username' => 'ops-admin@example.com',
+        'ip_address' => '198.51.100.42',
+        'status' => 'approved',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Billing Portal')
+        ->assertSee('ops-admin@example.com');
 });
 
 test('a signed-in user can open the integration hub', function () {
