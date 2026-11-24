@@ -11,10 +11,8 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: Inter, sans-serif;
-            background:
-                radial-gradient(circle at top left, rgba(61,90,241,0.18), transparent 34%),
-                linear-gradient(135deg, #0A0F1E 0%, #0F172A 48%, #111827 100%);
-            color: #F8FAFC;
+            background: #0E1326;
+            color: #FFFFFF;
             min-height: 100vh;
             padding: 24px;
         }
@@ -25,92 +23,90 @@
             margin: 0 auto;
             display: grid;
             grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
-            gap: 22px;
+            gap: 24px;
             align-items: stretch;
         }
         .card,
         .preview {
-            background: rgba(30,41,59,0.92);
+            background: #1C2236;
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.28);
-            backdrop-filter: blur(14px);
+            border-radius: 12px;
         }
         .card {
-            padding: 30px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
         .preview {
-            padding: 22px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
             min-height: 560px;
         }
         .app { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-        .app img { width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.06); }
+        .app img { width: 44px; height: 44px; border-radius: 8px; background: #0E1326; border: 1px solid rgba(255,255,255,0.08); }
         .eyebrow {
-            color: #A5B4FC;
+            color: #00BBFF;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             letter-spacing: 0.08em;
             text-transform: uppercase;
             margin-bottom: 10px;
         }
         h1 { font-size: 28px; margin-bottom: 8px; }
-        p { color: #94A3B8; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
-        label { display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px; }
+        p { color: rgba(255,255,255,0.6); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+        label { display: block; font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 6px; }
         input {
             width: 100%;
-            background: rgba(255,255,255,0.07);
-            border: 1.5px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 13px 14px;
-            color: #F8FAFC;
+            background: #0E1326;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #FFFFFF;
             font-size: 14px;
             margin-bottom: 14px;
         }
         button {
             width: 100%;
-            background: #3D5AF1;
-            border: 0;
-            border-radius: 12px;
+            background: #4063D7;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
             padding: 14px;
-            color: #fff;
-            font-weight: 700;
+            color: #FFFFFF;
+            font-weight: 600;
             cursor: pointer;
         }
         button:disabled { opacity: 0.6; cursor: default; }
         .status strong { display: block; font-size: 18px; margin: 12px 0 8px; }
-        a { color: #818CF8; }
-        .err { color: #F87171; font-size: 13px; margin-bottom: 12px; min-height: 1.2em; }
+        a { color: #00BBFF; }
+        .err { color: #FFFFFF; font-size: 13px; margin-bottom: 12px; min-height: 1.2em; }
         .hidden { display: none !important; }
         .status-chip {
             display: inline-flex;
             align-items: center;
             gap: 8px;
             width: fit-content;
-            padding: 7px 12px;
-            border-radius: 999px;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 600;
             margin-bottom: 16px;
-            background: rgba(129,140,248,0.14);
-            color: #C7D2FE;
+            background: #0E1326;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.6);
         }
         .status-chip.approved,
         .status-chip.auto {
-            background: rgba(34,197,94,0.14);
-            color: #86EFAC;
+            border-color: #00BBFF;
+            color: #00BBFF;
         }
         .status-chip.declined {
-            background: rgba(239,68,68,0.14);
-            color: #FCA5A5;
+            color: #FFFFFF;
         }
         .status-chip.pending {
-            background: rgba(234,179,8,0.14);
-            color: #FDE68A;
+            border-color: #4063D7;
+            color: #FFFFFF;
         }
         .preview-header {
             display: flex;
@@ -130,41 +126,99 @@
         .preview-stage {
             flex: 1;
             min-height: 360px;
-            border-radius: 18px;
+            border-radius: 12px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,0.08);
-            background: #0B1220;
+            background: #0E1326;
             position: relative;
         }
         .preview-placeholder,
-        .preview-frame {
+        .launch-card {
             width: 100%;
             height: 100%;
         }
-        .preview-placeholder {
+        .preview-placeholder,
+        .launch-card {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
             padding: 36px;
-            gap: 12px;
-            color: #CBD5E1;
+            gap: 14px;
+            color: #FFFFFF;
         }
         .preview-placeholder svg {
             opacity: 0.7;
         }
-        .preview-placeholder strong {
+        .preview-placeholder strong,
+        .launch-card strong {
             font-size: 20px;
         }
-        .preview-placeholder span {
-            color: #94A3B8;
+        .preview-placeholder span,
+        .launch-card span {
+            color: rgba(255,255,255,0.6);
             line-height: 1.7;
             max-width: 460px;
         }
-        .preview-frame {
-            border: 0;
-            background: #fff;
+        .launch-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #1C2236;
+            border: 1px solid #00BBFF;
+            color: #00BBFF;
+        }
+        .launch-domain {
+            font-family: monospace;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            background: #1C2236;
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        .launch-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .launch-primary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            background: #4063D7;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #FFFFFF;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .launch-countdown-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+        .launch-cancel-btn {
+            width: auto;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #1C2236;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            color: #FFFFFF;
+            cursor: pointer;
         }
         .preview-actions {
             display: flex;
@@ -175,7 +229,7 @@
             flex-wrap: wrap;
         }
         .preview-hint {
-            color: #94A3B8;
+            color: rgba(255,255,255,0.6);
             font-size: 12px;
             line-height: 1.6;
         }
@@ -184,15 +238,12 @@
             align-items: center;
             justify-content: center;
             padding: 12px 16px;
-            border-radius: 12px;
+            border-radius: 8px;
             text-decoration: none;
-            background: rgba(61,90,241,0.14);
-            border: 1px solid rgba(99,102,241,0.28);
-            color: #C7D2FE;
-            font-weight: 700;
-        }
-        .preview-link:hover {
-            background: rgba(61,90,241,0.22);
+            background: #0E1326;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #FFFFFF;
+            font-weight: 600;
         }
         @media (max-width: 960px) {
             .layout {
@@ -264,14 +315,24 @@
                     <path d="M12 18v2"></path>
                 </svg>
                 <strong id="previewPlaceholderTitle">Waiting for a decision</strong>
-                <span id="previewPlaceholderText">Approve the request from the mobile app to load {{ $integration->name }} beside this login page, or decline it to keep the app blocked.</span>
+                <span id="previewPlaceholderText">Approve the request from the mobile app to unlock {{ $integration->name }}, or decline it to keep the app blocked.</span>
             </div>
-            <iframe
-                id="previewFrame"
-                class="preview-frame hidden"
-                title="{{ $integration->name }} preview"
-                referrerpolicy="strict-origin-when-cross-origin"
-            ></iframe>
+
+            <div id="verifiedLaunchCard" class="launch-card hidden">
+                <div class="launch-badge">Session Verified</div>
+                <strong id="launchAppName">{{ $integration->name }}</strong>
+                <div id="launchAppDomain" class="launch-domain">{{ $integration->url }}</div>
+                <span>Your SecureTS verification challenge passed. Continue directly to the destination application below.</span>
+                <div class="launch-actions">
+                    <a id="launchContinueBtn" href="{{ $integration->url }}" target="_blank" rel="noopener noreferrer" class="launch-primary-btn">
+                        Continue to App ↗
+                    </a>
+                    <div id="launchCountdownWrap" class="launch-countdown-row">
+                        <span id="launchCountdownText">Auto-redirecting in 2s…</span>
+                        <button type="button" id="cancelAutoRedirectBtn" class="launch-cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="preview-actions">
@@ -311,8 +372,47 @@ const previewText             = document.getElementById('previewText');
 const previewPlaceholder      = document.getElementById('previewPlaceholder');
 const previewPlaceholderTitle = document.getElementById('previewPlaceholderTitle');
 const previewPlaceholderText  = document.getElementById('previewPlaceholderText');
-const previewFrame            = document.getElementById('previewFrame');
+const verifiedLaunchCard      = document.getElementById('verifiedLaunchCard');
+const launchAppDomain         = document.getElementById('launchAppDomain');
+const launchContinueBtn       = document.getElementById('launchContinueBtn');
+const launchCountdownText     = document.getElementById('launchCountdownText');
+const cancelAutoRedirectBtn   = document.getElementById('cancelAutoRedirectBtn');
 const previewLink             = document.getElementById('previewLink');
+
+let redirectTimer = null;
+let redirectSeconds = 2;
+
+function clearAutoRedirect() {
+    if (redirectTimer) {
+        clearInterval(redirectTimer);
+        redirectTimer = null;
+    }
+}
+
+cancelAutoRedirectBtn?.addEventListener('click', () => {
+    clearAutoRedirect();
+    launchCountdownText.textContent = 'Auto-redirect cancelled.';
+    cancelAutoRedirectBtn.classList.add('hidden');
+});
+
+function startAutoRedirect(targetUrl) {
+    clearAutoRedirect();
+    if (!isSafeHttpUrl(targetUrl)) return;
+    redirectSeconds = 2;
+    cancelAutoRedirectBtn.classList.remove('hidden');
+    launchCountdownText.textContent = `Auto-redirecting in ${redirectSeconds}s…`;
+
+    redirectTimer = setInterval(() => {
+        redirectSeconds -= 1;
+        if (redirectSeconds <= 0) {
+            clearAutoRedirect();
+            launchCountdownText.textContent = 'Redirecting…';
+            window.location.assign(targetUrl);
+            return;
+        }
+        launchCountdownText.textContent = `Auto-redirecting in ${redirectSeconds}s…`;
+    }, 1000);
+}
 
 function isSafeHttpUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -330,19 +430,21 @@ function setPreviewState(status, redirectUrl = null) {
     if (status === 'approved' || status === 'auto') {
         previewStatus.textContent = status === 'auto' ? 'Auto-approved' : 'Approved';
         previewTitle.textContent  = APP_NAME + ' is ready';
-        previewText.textContent   = 'This SecureTS gate visit is approved. The external site may load beside this page, but you must sign in there separately. Direct visits bypass this gate.';
+        previewText.textContent   = 'This SecureTS gate visit is approved. Launch the external application below or wait for automatic redirection.';
         previewPlaceholder.classList.add('hidden');
-        previewFrame.classList.remove('hidden');
+        verifiedLaunchCard.classList.remove('hidden');
         previewLink.classList.remove('hidden');
         if (isSafeHttpUrl(redirectUrl)) {
-            previewFrame.src = redirectUrl;
+            launchAppDomain.textContent = redirectUrl;
+            launchContinueBtn.href = redirectUrl;
             previewLink.href = redirectUrl;
+            startAutoRedirect(redirectUrl);
         }
         return;
     }
 
-    previewFrame.classList.add('hidden');
-    previewFrame.removeAttribute('src');
+    clearAutoRedirect();
+    verifiedLaunchCard.classList.add('hidden');
     previewLink.classList.add('hidden');
 
     if (status === 'declined' || status === 'expired') {

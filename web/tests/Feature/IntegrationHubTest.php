@@ -108,7 +108,58 @@ test('a user can add an external app on the web hub', function () {
         ->get(route('integrations'))
         ->assertOk()
         ->assertSee('Payroll')
-        ->assertSee('https://payroll.example/login');
+        ->assertSee('https://payroll.example/login')
+        ->assertSee('Open Gate');
+});
+
+test('dashboard renders the 3-step quickstart when the user has 0 integrations', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('1. Connect an App')
+        ->assertSee('2. Test Gate in Browser')
+        ->assertSee('3. Pair Mobile / Extension')
+        ->assertSee('Connect Your First App');
+});
+
+test('owning user can archive and delete login events on web while unauthorized users are rejected', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    $integration = $owner->integrations()->create([
+        'name' => 'Internal Wiki',
+        'url' => 'https://wiki.example/login',
+        'secret_key' => 'WIKISECRET123456',
+        'is_active' => true,
+    ]);
+
+    $event = $integration->loginEvents()->create([
+        'user_id' => $owner->id,
+        'status' => 'approved',
+    ]);
+
+    // Unauthorized user is forbidden
+    $this->actingAs($stranger)
+        ->patchJson("/web/login-events/{$event->id}/archive")
+        ->assertForbidden();
+
+    $this->actingAs($stranger)
+        ->deleteJson("/web/login-events/{$event->id}")
+        ->assertForbidden();
+
+    // Owner can archive
+    $this->actingAs($owner)
+        ->patchJson("/web/login-events/{$event->id}/archive")
+        ->assertOk();
+    expect($event->fresh()->is_archived)->toBeTrue();
+
+    // Owner can delete
+    $this->actingAs($owner)
+        ->deleteJson("/web/login-events/{$event->id}")
+        ->assertOk();
+    $this->assertDatabaseMissing('login_events', ['id' => $event->id]);
 });
 
 test('card actions hand the app id over as a data attribute instead of inline interpolation', function () {

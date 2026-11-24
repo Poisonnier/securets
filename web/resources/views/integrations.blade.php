@@ -43,14 +43,41 @@
     {{-- TAB: Connected Apps --}}
     <div id="tab-apps" class="tab-panel">
         @if($integrations->isEmpty())
-            <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-12 text-center">
-                <div class="w-10 h-10 rounded-md bg-[#0E1326] border border-gray-700/50 flex items-center justify-center mx-auto mb-3 text-slate-400">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                    </svg>
+            <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-8">
+                <div class="text-center max-w-md mx-auto mb-6">
+                    <div class="w-10 h-10 rounded-md bg-[#0E1326] border border-gray-700/50 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-sm font-semibold text-white">No apps integrated yet</h2>
+                    <p class="text-xs text-slate-400 mt-1">Follow the 3-step quickstart below to provision your first application gate and start generating TOTP tokens.</p>
                 </div>
-                <h2 class="text-sm font-semibold text-white">No apps integrated yet</h2>
-                <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Click <span class="text-slate-200 font-medium">+ Add Application</span> to register your first application gate and begin generating TOTP tokens.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+                    <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                        <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 1</span>
+                        <h3 class="text-xs font-semibold text-white mt-1">1. Connect an App</h3>
+                        <p class="text-xs text-slate-400 mt-1">Register your target app URL to generate a dedicated gate link and one-time API/TOTP secret.</p>
+                    </div>
+                    <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                        <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 2</span>
+                        <h3 class="text-xs font-semibold text-white mt-1">2. Test Gate in Browser</h3>
+                        <p class="text-xs text-slate-400 mt-1">Open the generated gate URL in a new tab. The first visit auto-approves; subsequent visits trigger push challenges.</p>
+                    </div>
+                    <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                        <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 3</span>
+                        <h3 class="text-xs font-semibold text-white mt-1">3. Pair Mobile / Extension</h3>
+                        <p class="text-xs text-slate-400 mt-1">Sign in on the SecureTS mobile app or pair the browser extension to approve and intercept logins in real time.</p>
+                    </div>
+                </div>
+
+                <div class="text-center">
+                    <button type="button" onclick="openAddModal()"
+                        class="inline-flex items-center gap-2 bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-4 py-2.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                        Connect Your First App
+                    </button>
+                </div>
             </div>
         @else
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -122,7 +149,14 @@
                         </div>
 
                         {{-- Card Actions --}}
-                        <div class="flex items-center gap-2 pt-1 border-t border-gray-700/50">
+                        <div class="flex items-center gap-2 pt-1 border-t border-gray-700/50 flex-wrap">
+                            <a href="{{ $app->gateUrl() }}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="flex-1 text-center bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">
+                                Open Gate ↗
+                            </a>
+
                             <button type="button"
                                     data-copy-value="{{ $app->gateUrl() }}"
                                     data-copy-msg="Login gate link copied to clipboard."
@@ -167,12 +201,13 @@
                             <th class="py-2.5 px-5 font-medium">App</th>
                             <th class="py-2.5 px-5 font-medium">Device / IP</th>
                             <th class="py-2.5 px-5 font-medium">Status</th>
-                            <th class="py-2.5 px-5 font-medium text-right">Timestamp</th>
+                            <th class="py-2.5 px-5 font-medium">Timestamp</th>
+                            <th class="py-2.5 px-5 font-medium text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="historyBody" class="divide-y divide-gray-700/50 text-xs">
                         <tr>
-                            <td colspan="4" class="py-10 px-5 text-center font-mono text-slate-400">Loading verification events...</td>
+                            <td colspan="5" class="py-10 px-5 text-center font-mono text-slate-400">Loading verification events...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -362,6 +397,82 @@
             </a>
         </div>
     </div>
+
+    {{-- MODAL: One-Time Integration Secret & Setup --}}
+    <div id="secretModal" class="hidden fixed inset-0 z-50 bg-[#0E1326]/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="w-full max-w-lg bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">One-Time Provisioning Credential</span>
+                    <h2 class="text-base font-semibold text-white mt-0.5">Integration Created — Save Your Secret</h2>
+                </div>
+            </div>
+
+            <div class="mb-4 px-3 py-2.5 rounded-md bg-[#0E1326] border border-[#4063D7]/60 text-xs text-slate-200 leading-relaxed">
+                Copy and store this <span class="font-mono text-[#00BBFF]">secret_key</span> now. For your security, it will <strong>not be shown again</strong> after you close this dialog. It serves as both your API authentication credential and RFC-6238 TOTP seed.
+            </div>
+
+            <div class="space-y-4">
+                {{-- One-Time Secret Key --}}
+                <div>
+                    <label for="createdSecretKey" class="block text-xs font-medium text-slate-300 mb-1.5">One-Time API &amp; TOTP Secret Key</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="createdSecretKey" readonly
+                            class="flex-1 bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-xs font-mono text-[#00BBFF] focus:outline-none">
+                        <button type="button" id="copySecretKeyBtn"
+                            data-copy-value=""
+                            data-copy-msg="One-time secret key copied to clipboard."
+                            onclick="copyFromButton(this)"
+                            class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                            Copy Secret
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Generated Gate URL --}}
+                <div>
+                    <label for="createdGateUrl" class="block text-xs font-medium text-slate-300 mb-1.5">Generated Gate URL</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="createdGateUrl" readonly
+                            class="flex-1 bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none">
+                        <button type="button" id="copyCreatedGateBtn"
+                            data-copy-value=""
+                            data-copy-msg="Gate URL copied to clipboard."
+                            onclick="copyFromButton(this)"
+                            class="bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                            Copy URL
+                        </button>
+                        <a id="testCreatedGateLink" href="#" target="_blank" rel="noopener noreferrer"
+                            class="bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium py-2 px-3 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">
+                            Test Gate ↗
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Ready-to-copy cURL Snippet --}}
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="createdCurlSnippet" class="block text-xs font-medium text-slate-300">API Trigger Snippet (<span class="font-mono text-slate-400">POST /api/integrations/login-event</span>)</label>
+                        <button type="button" id="copyCurlSnippetBtn"
+                            data-copy-value=""
+                            data-copy-msg="cURL snippet copied to clipboard."
+                            onclick="copyFromButton(this)"
+                            class="text-[11px] font-mono text-[#00BBFF] hover:underline focus:outline-none cursor-pointer">
+                            Copy cURL
+                        </button>
+                    </div>
+                    <pre id="createdCurlSnippet" class="bg-[#0E1326] border border-gray-700/50 rounded-md p-3 text-[11px] font-mono text-slate-300 overflow-x-auto whitespace-pre-wrap break-all"></pre>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end mt-6 pt-4 border-t border-gray-700/50">
+                <button type="button" onclick="dismissSecretModal()"
+                    class="px-5 py-2 rounded-md text-xs font-medium text-white bg-[#4063D7] hover:bg-[#4063D7]/90 border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -432,11 +543,8 @@ async function addApp() {
         });
         const body = await res.json().catch(() => ({}));
         if (res.ok) {
-            sessionStorage.setItem('hubFlash', JSON.stringify({
-                type: 'success',
-                message: 'Application connected successfully.',
-            }));
-            window.location.reload();
+            closeAddModal();
+            openSecretModal(body);
             return;
         }
         if (res.status === 403 && body.upgrade_required) {
@@ -458,6 +566,34 @@ async function addApp() {
         btn.disabled = false;
         btn.textContent = 'Add Application';
     }
+}
+
+function openSecretModal(app) {
+    const secret = app.secret_key ?? '';
+    const gateUrl = app.gate_url ?? '';
+    const apiEndpoint = window.location.origin + '/api/integrations/login-event';
+    const curlCmd = `curl -X POST "${apiEndpoint}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"secret_key":"${secret}","credential_username":"user@example.com"}'`;
+
+    document.getElementById('createdSecretKey').value = secret;
+    document.getElementById('copySecretKeyBtn').dataset.copyValue = secret;
+
+    document.getElementById('createdGateUrl').value = gateUrl;
+    document.getElementById('copyCreatedGateBtn').dataset.copyValue = gateUrl;
+    document.getElementById('testCreatedGateLink').href = gateUrl;
+
+    document.getElementById('createdCurlSnippet').textContent = curlCmd;
+    document.getElementById('copyCurlSnippetBtn').dataset.copyValue = curlCmd;
+
+    document.getElementById('secretModal').classList.remove('hidden');
+}
+
+function dismissSecretModal() {
+    document.getElementById('secretModal').classList.add('hidden');
+    sessionStorage.setItem('hubFlash', JSON.stringify({
+        type: 'success',
+        message: 'Application connected successfully.',
+    }));
+    window.location.reload();
 }
 
 // ── Edit Details Modal (Name Only, URL Read-Only) ────────────────────────────
@@ -739,7 +875,7 @@ async function loadHistory() {
         const data = await res.json();
 
         if (!data.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="py-10 px-5 text-center font-mono text-slate-400">No login verification history recorded yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="py-10 px-5 text-center font-mono text-slate-400">No login verification history recorded yet.</td></tr>';
             return;
         }
 
@@ -767,11 +903,60 @@ async function loadHistory() {
                 <td class="py-3 px-5">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono border ${badge}">${escapeHtml(status)}</span>
                 </td>
-                <td class="py-3 px-5 font-mono text-slate-400 text-right">${createdAt}</td>
+                <td class="py-3 px-5 font-mono text-slate-400">${createdAt}</td>
+                <td class="py-3 px-5 text-right">
+                    <div class="inline-flex items-center justify-end gap-2">
+                        <button type="button" onclick="archiveLoginEvent(${id})"
+                            class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-300 bg-[#0E1326] hover:border-[#00BBFF]/60 border border-gray-700/50 transition-colors cursor-pointer">
+                            Archive
+                        </button>
+                        <button type="button" onclick="deleteLoginEvent(${id})"
+                            class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-300 bg-[#0E1326] hover:border-red-400/60 hover:text-red-300 border border-gray-700/50 transition-colors cursor-pointer">
+                            Delete
+                        </button>
+                    </div>
+                </td>
             </tr>`;
         }).join('');
     } catch (_) {
-        tbody.innerHTML = '<tr><td colspan="4" class="py-10 px-5 text-center font-mono text-red-400">Could not load login history.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="py-10 px-5 text-center font-mono text-red-400">Could not load login history.</td></tr>';
+    }
+}
+
+async function archiveLoginEvent(eventId) {
+    try {
+        const res = await fetch(`/web/login-events/${eventId}/archive`, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('event-' + eventId)?.remove();
+        const tbody = document.getElementById('historyBody');
+        if (tbody && !tbody.querySelector('tr')) {
+            tbody.innerHTML = '<tr><td colspan="5" class="py-10 px-5 text-center font-mono text-slate-400">No login verification history recorded yet.</td></tr>';
+        }
+        setFlash('success', 'Login event archived.');
+    } catch (_) {
+        setFlash('error', 'Could not archive login event.');
+    }
+}
+
+async function deleteLoginEvent(eventId) {
+    if (!window.confirm('Permanently delete this login event from history?')) return;
+    try {
+        const res = await fetch(`/web/login-events/${eventId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('event-' + eventId)?.remove();
+        const tbody = document.getElementById('historyBody');
+        if (tbody && !tbody.querySelector('tr')) {
+            tbody.innerHTML = '<tr><td colspan="5" class="py-10 px-5 text-center font-mono text-slate-400">No login verification history recorded yet.</td></tr>';
+        }
+        setFlash('success', 'Login event deleted.');
+    } catch (_) {
+        setFlash('error', 'Could not delete login event.');
     }
 }
 

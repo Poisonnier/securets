@@ -185,7 +185,10 @@ test('the hosted gate shows the linked app area beside the login flow', function
         ->assertOk()
         ->assertSee('App Preview')
         ->assertSee('will open here after SecureTS finishes the current login check')
-        ->assertSee('Open '.$integration->name);
+        ->assertSee('Open '.$integration->name)
+        ->assertSee('Session Verified')
+        ->assertSee('Continue to App')
+        ->assertDontSee('<iframe id="previewFrame"', false);
 });
 
 test('pending approvals endpoint returns matching events and is not shadowed by the public event route', function () {
