@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingsController;
@@ -21,6 +23,11 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
 
 // Public login gate for a linked app (uses gate_token, not the TOTP secret)
 Route::middleware('throttle:30,1')->group(function () {
@@ -67,6 +74,9 @@ Route::middleware('auth')->group(function () {
         // Browser extension pairing token
         Route::get('/extension-token', [ExtensionController::class, 'showToken']);
         Route::post('/extension-token/rotate', [ExtensionController::class, 'rotateToken']);
+
+        // Paired mobile devices management
+        Route::delete('/devices/{device}', [DeviceController::class, 'destroy']);
     });
 
     // ── Subscription pages ────────────────────────────────────────────────────

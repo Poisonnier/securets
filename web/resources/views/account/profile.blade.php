@@ -1,358 +1,212 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Profile Details – SecureThreatShield</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; }
-        :root {
-            --blue: #3D5AF1;
-            --blue-hover: #2E46DB;
-            --dark: #0F172A;
-            --mid: #1E293B;
-            --card-bg: #162032;
-            --border: rgba(255,255,255,.08);
-            --border-focus: rgba(61,90,241,.5);
-            --text: #F8FAFC;
-            --muted: #94A3B8;
-            --success-bg: rgba(34,197,94,.12);
-            --success-border: rgba(34,197,94,.3);
-            --success-text: #86EFAC;
-            --danger-bg: rgba(239,68,68,.12);
-            --danger-border: rgba(239,68,68,.3);
-            --danger-text: #FCA5A5;
-        }
-        body { margin:0; min-height:100vh; background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; }
-        @include('account.navigation-styles')
+@extends('layouts.app', ['activeNav' => 'profile'])
 
-        main { width:min(720px, calc(100% - 40px)); margin:0 auto; padding:48px 0 64px; }
-        h1 { margin:0 0 8px; font-size:28px; font-weight:800; }
-        .intro { margin:0 0 28px; color:var(--muted); font-size:14px; }
+@section('title', 'Profile Details – SecureThreatShield')
+@section('description', 'Manage your personal details, credentials, and account status.')
 
-        .alert {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .alert-success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
-        .alert-danger  { background: var(--danger-bg); border: 1px solid var(--danger-border); color: var(--danger-text); }
+@section('content')
+    {{-- Page Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-5 border-b border-gray-700/50">
+        <div>
+            <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">Account Profile</span>
+            <h1 class="text-xl font-semibold text-white tracking-tight mt-1">Profile details</h1>
+            <p class="text-xs text-slate-400 mt-1">Manage your personal details, credentials, and account status.</p>
+        </div>
+    </div>
 
-        .cards-stack { display: grid; gap: 24px; }
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .card-danger {
-            border-color: rgba(239,68,68,0.25);
-            background: rgba(239,68,68,0.03);
-        }
+    @if (session('status'))
+        <div class="mb-6 px-4 py-3 rounded-md border text-xs font-medium bg-[#1C2236] border-[#00BBFF]/40 text-[#00BBFF]" role="alert">
+            {{ session('status') }}
+        </div>
+    @endif
 
-        .summary { display:flex; align-items:center; gap:18px; }
-        .large-avatar {
-            width:64px; height:64px; display:grid; place-items:center;
-            border-radius:50%; background:var(--blue); font-size:22px; font-weight:800;
-            color: #fff; flex-shrink: 0; box-shadow: 0 8px 24px rgba(61,90,241,0.3);
-        }
-        .summary h2 { margin:0 0 4px; font-size:20px; font-weight:700; }
-        .summary p { margin:0; color:var(--muted); font-size:13px; }
+    @if (session('password_status'))
+        <div class="mb-6 px-4 py-3 rounded-md border text-xs font-medium bg-[#1C2236] border-[#00BBFF]/40 text-[#00BBFF]" role="alert">
+            {{ session('password_status') }}
+        </div>
+    @endif
 
-        .card-header { margin-bottom: 22px; }
-        .card-header h2 { margin:0 0 6px; font-size:17px; font-weight:700; }
-        .card-header p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
-
-        .form-grid { display: grid; gap: 18px; }
-        .form-group { display: flex; flex-direction: column; gap: 7px; }
-        .form-group label { font-size: 13px; font-weight: 600; color: #CBD5E1; }
-        .form-control {
-            background: #0B1120;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 11px 14px;
-            color: var(--text);
-            font-family: inherit;
-            font-size: 14px;
-            outline: none;
-            transition: border-color .2s, box-shadow .2s;
-        }
-        .form-control:focus {
-            border-color: var(--blue);
-            box-shadow: 0 0 0 3px rgba(61,90,241,0.25);
-        }
-        .form-control.is-invalid {
-            border-color: #EF4444;
-            box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
-        }
-        .field-error { color: #FCA5A5; font-size: 12px; margin-top: 3px; }
-
-        .btn-primary {
-            background: var(--blue);
-            color: #fff;
-            border: 0;
-            border-radius: 10px;
-            padding: 11px 22px;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background .2s, transform .1s;
-            align-self: flex-start;
-        }
-        .btn-primary:hover { background: var(--blue-hover); }
-        .btn-primary:active { transform: scale(0.98); }
-
-        .btn-danger {
-            background: var(--danger-bg);
-            border: 1px solid var(--danger-border);
-            color: var(--danger-text);
-            border-radius: 10px;
-            padding: 11px 20px;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background .2s;
-            align-self: flex-start;
-        }
-        .btn-danger:hover { background: rgba(239,68,68,0.22); }
-
-        /* Modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(4px);
-            display: none;
-            place-items: center;
-            z-index: 500;
-            padding: 20px;
-        }
-        .modal-backdrop.is-open { display: grid; }
-        .modal {
-            background: #111A2D;
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 16px;
-            width: min(440px, 100%);
-            padding: 24px;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-        }
-        .modal h3 { margin: 0 0 8px; font-size: 18px; color: #F8FAFC; }
-        .modal p { margin: 0 0 20px; color: var(--muted); font-size: 13px; line-height: 1.5; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
-        .btn-cancel {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 10px;
-            padding: 9px 18px;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-cancel:hover { background: rgba(255,255,255,0.1); }
-
-        @media (max-width:640px) {
-            main { width:min(100% - 32px, 720px); padding:32px 0; }
-            .card { padding:20px; }
-            .btn-primary, .btn-danger { width: 100%; justify-content: center; text-align: center; }
-        }
-    </style>
-</head>
-<body>
-    @include('account.navigation', ['activeNav' => 'profile'])
-    @include('account.profile-menu')
-
-    <main>
-        <h1>Profile details</h1>
-        <p class="intro">Manage your personal details, credentials, and account status.</p>
-
-        @if (session('status'))
-            <div class="alert alert-success" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-                <span>{{ session('status') }}</span>
-            </div>
-        @endif
-
-        @if (session('password_status'))
-            <div class="alert alert-success" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-                <span>{{ session('password_status') }}</span>
-            </div>
-        @endif
-
-        <div class="cards-stack">
-            <!-- User Summary Badge -->
-            <section class="card">
-                <div class="summary">
-                    <div class="large-avatar">{{ $user->initials() }}</div>
-                    <div>
-                        <h2>{{ $user->name }}</h2>
-                        <p>{{ $user->email }} &bull; SecureThreatShield account</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Profile Info Form -->
-            <section class="card">
-                <div class="card-header">
-                    <h2>Account Information</h2>
-                    <p>Update your display name and email address connected to this account.</p>
-                </div>
-                <form method="POST" action="{{ route('profile.update') }}" class="form-grid">
-                    @csrf
-                    @method('PATCH')
-
-                    <div class="form-group">
-                        <label for="name">Display name</label>
-                        <input type="text" id="name" name="name" class="form-control @error('name') is-invalid @enderror"
-                               value="{{ old('name', $user->name) }}" required autocomplete="name">
-                        @error('name')
-                            <span class="field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email address</label>
-                        <input type="email" id="email" name="email" class="form-control @error('email') is-invalid @enderror"
-                               value="{{ old('email', $user->email) }}" required autocomplete="email">
-                        @error('email')
-                            <span class="field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <button type="submit" class="btn-primary">Save Changes</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Change Password Form -->
-            <section class="card">
-                <div class="card-header">
-                    <h2>Update Password</h2>
-                    <p>Ensure your account is using a long, secure password to stay protected.</p>
-                </div>
-                <form method="POST" action="{{ route('profile.password') }}" class="form-grid">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="form-group">
-                        <label for="current_password">Current password</label>
-                        <input type="password" id="current_password" name="current_password"
-                               class="form-control @error('current_password') is-invalid @enderror"
-                               autocomplete="current-password" required>
-                        @error('current_password')
-                            <span class="field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">New password</label>
-                        <input type="password" id="password" name="password"
-                               class="form-control @error('password') is-invalid @enderror"
-                               autocomplete="new-password" required>
-                        @error('password')
-                            <span class="field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password_confirmation">Confirm new password</label>
-                        <input type="password" id="password_confirmation" name="password_confirmation"
-                               class="form-control @error('password_confirmation') is-invalid @enderror"
-                               autocomplete="new-password" required>
-                        @error('password_confirmation')
-                            <span class="field-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <button type="submit" class="btn-primary">Update Password</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Danger Zone: Archive Account -->
-            <section class="card card-danger">
-                <div class="card-header">
-                    <h2 style="color:#FCA5A5">Archive Account</h2>
-                    <p>Temporarily deactivate your account. Protection and authentication integrations will be paused. You can reactivate your account at any time simply by logging back in.</p>
+    <div class="space-y-6">
+        {{-- User Summary Badge --}}
+        <section class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-lg bg-[#4063D7] border border-gray-700/50 flex items-center justify-center text-white text-lg font-semibold shrink-0">
+                    {{ $user->initials() }}
                 </div>
                 <div>
-                    <button type="button" class="btn-danger" id="openArchiveModalBtn">Archive Account</button>
+                    <h2 class="text-base font-semibold text-white">{{ $user->name }}</h2>
+                    <p class="text-xs font-mono text-slate-400 mt-0.5">{{ $user->email }} &bull; SecureThreatShield account</p>
                 </div>
-            </section>
-        </div>
-    </main>
+            </div>
+        </section>
 
-    <!-- Archive Confirmation Modal -->
-    <div class="modal-backdrop" id="archiveModal" aria-hidden="true">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-            <h3 id="modalTitle">Archive your account?</h3>
-            <p>Please enter your current password to confirm you want to archive your account. You can reactivate it anytime by logging back in.</p>
+        {{-- Profile Info Form --}}
+        <section class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <div class="mb-5">
+                <h2 class="text-sm font-semibold text-white">Account Information</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Update your display name and email address connected to this account.</p>
+            </div>
+            <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
+                @csrf
+                @method('PATCH')
+
+                <div>
+                    <label for="name" class="block text-xs font-medium text-slate-300 mb-1.5">Display name</label>
+                    <input type="text" id="name" name="name"
+                        value="{{ old('name', $user->name) }}" required autocomplete="name"
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
+                    @error('name')
+                        <span class="block text-xs text-slate-300 mt-1">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="email" class="block text-xs font-medium text-slate-300 mb-1.5">Email address</label>
+                    <input type="email" id="email" name="email"
+                        value="{{ old('email', $user->email) }}" required autocomplete="email"
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
+                    @error('email')
+                        <span class="block text-xs text-slate-300 mt-1">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-4 py-2.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        {{-- Change Password Form --}}
+        <section class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <div class="mb-5">
+                <h2 class="text-sm font-semibold text-white">Update Password</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Ensure your account is using a long, secure password to stay protected.</p>
+            </div>
+            <form method="POST" action="{{ route('profile.password') }}" class="space-y-4">
+                @csrf
+                @method('PUT')
+
+                <div>
+                    <label for="current_password" class="block text-xs font-medium text-slate-300 mb-1.5">Current password</label>
+                    <input type="password" id="current_password" name="current_password"
+                        autocomplete="current-password" required
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
+                    @error('current_password')
+                        <span class="block text-xs text-slate-300 mt-1">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="password" class="block text-xs font-medium text-slate-300 mb-1.5">New password</label>
+                    <input type="password" id="password" name="password"
+                        autocomplete="new-password" required
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
+                    @error('password')
+                        <span class="block text-xs text-slate-300 mt-1">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="password_confirmation" class="block text-xs font-medium text-slate-300 mb-1.5">Confirm new password</label>
+                    <input type="password" id="password_confirmation" name="password_confirmation"
+                        autocomplete="new-password" required
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
+                    @error('password_confirmation')
+                        <span class="block text-xs text-slate-300 mt-1">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-4 py-2.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                        Update Password
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        {{-- Archive Account --}}
+        <section class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6">
+            <div class="mb-4">
+                <h2 class="text-sm font-semibold text-white">Archive Account</h2>
+                <p class="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                    Temporarily deactivate your account. Protection and authentication integrations will be paused. You can reactivate your account at any time simply by logging back in.
+                </p>
+            </div>
+            <div>
+                <button type="button" id="openArchiveModalBtn"
+                    class="bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium px-4 py-2.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                    Archive Account
+                </button>
+            </div>
+        </section>
+    </div>
+
+    {{-- Archive Confirmation Modal --}}
+    <div id="archiveModal" aria-hidden="true"
+        class="{{ $errors->archive->any() ? '' : 'hidden' }} fixed inset-0 z-50 bg-[#0E1326]/80 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-[#1C2236] border border-gray-700/50 rounded-lg p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <h3 id="modalTitle" class="text-base font-semibold text-white mb-2">Archive your account?</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                Please enter your current password to confirm you want to archive your account. You can reactivate it anytime by logging back in.
+            </p>
             <form method="POST" action="{{ route('profile.archive') }}" id="archiveForm">
                 @csrf
-                <div class="form-group">
-                    <label for="archive_password">Current password</label>
-                    <input type="password" id="archive_password" name="password" class="form-control @if($errors->archive->has('password')) is-invalid @endif" required placeholder="Enter password to confirm">
+                <div class="mb-4">
+                    <label for="archive_password" class="block text-xs font-medium text-slate-300 mb-1.5">Current password</label>
+                    <input type="password" id="archive_password" name="password" required placeholder="Enter password to confirm"
+                        class="w-full bg-[#0E1326] border border-gray-700/50 rounded-md px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#4063D7] focus:ring-1 focus:ring-[#4063D7] transition">
                     @if ($errors->archive->has('password'))
-                        <span class="field-error">{{ $errors->archive->first('password') }}</span>
+                        <span class="block text-xs text-slate-300 mt-1">{{ $errors->archive->first('password') }}</span>
                     @endif
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-cancel" id="closeArchiveModalBtn">Cancel</button>
-                    <button type="submit" class="btn-danger">Confirm Archive</button>
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-700/50">
+                    <button type="button" id="closeArchiveModalBtn"
+                        class="px-4 py-2 rounded-md text-xs font-medium text-slate-300 bg-[#0E1326] hover:text-white border border-gray-700/50 transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 rounded-md text-xs font-medium text-slate-200 bg-[#0E1326] hover:border-[#00BBFF]/60 border border-gray-700/50 transition-colors cursor-pointer">
+                        Confirm Archive
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+@endsection
 
-    <script>
-        (() => {
-            const modal = document.getElementById('archiveModal');
-            const openBtn = document.getElementById('openArchiveModalBtn');
-            const closeBtn = document.getElementById('closeArchiveModalBtn');
-            const passwordInput = document.getElementById('archive_password');
+@push('scripts')
+<script>
+    (() => {
+        const modal = document.getElementById('archiveModal');
+        const openBtn = document.getElementById('openArchiveModalBtn');
+        const closeBtn = document.getElementById('closeArchiveModalBtn');
+        const passwordInput = document.getElementById('archive_password');
 
-            const openModal = () => {
-                modal.classList.add('is-open');
-                modal.setAttribute('aria-hidden', 'false');
-                passwordInput.value = '';
-                passwordInput.focus();
-            };
+        if (!modal || !openBtn || !closeBtn) return;
 
-            const closeModal = () => {
-                modal.classList.remove('is-open');
-                modal.setAttribute('aria-hidden', 'true');
-            };
+        const openModal = () => {
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            passwordInput.value = '';
+            passwordInput.focus();
+        };
 
-            openBtn.addEventListener('click', openModal);
-            closeBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) closeModal();
-            });
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
-            });
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+        };
 
-            @if ($errors->archive->any())
-                modal.classList.add('is-open');
-                modal.setAttribute('aria-hidden', 'false');
-                passwordInput.focus();
-            @endif
-        })();
-    </script>
-</body>
-</html>
+        openBtn.addEventListener('click', openModal);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+    })();
+</script>
+@endpush

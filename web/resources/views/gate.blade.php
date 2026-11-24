@@ -7,6 +7,7 @@
     <title>Sign in to {{ $integration->name }} – SecureTS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -267,8 +268,8 @@
         <div class="app">
             <img src="{{ $integration->favicon }}" alt="" onerror="this.style.display='none'">
             <div>
-                <div style="font-weight:700">{{ $integration->name }}</div>
-                <div style="font-size:12px;color:#94A3B8">Protected by SecureTS</div>
+                <div style="font-weight:600">{{ $integration->name }}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.6)">Protected by SecureTS</div>
             </div>
         </div>
 
