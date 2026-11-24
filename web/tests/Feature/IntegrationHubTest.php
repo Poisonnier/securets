@@ -14,7 +14,22 @@ test('the landing page links to sign in', function () {
         ->assertSee('Log in', false)
         ->assertSee(route('login', absolute: false), false)
         ->assertSee('Get Started', false)
-        ->assertSee(route('register', absolute: false), false);
+        ->assertSee(route('register', absolute: false), false)
+        ->assertSee('Pricing', false)
+        ->assertSee('#pricing', false)
+        ->assertSee('Subscription Plans')
+        ->assertSee('Free')
+        ->assertSee('Pro')
+        ->assertSee('Ultra')
+        ->assertSee('Ultra Plus')
+        ->assertSee('Verify Session');
+});
+
+test('the register page renders a back to home link pointing to the landing page', function () {
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertSee('Back to home')
+        ->assertSee('href="'.route('home').'"', false);
 });
 
 test('registration authenticates the user and redirects to the integration hub', function () {
