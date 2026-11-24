@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\Route;
 // ── Mobile Auth (public) ──────────────────────────────────────────────────────
 // Keep the legacy /api/login path alive so refreshed or cached mobile clients
 // can still sign back in while the app converges on /api/mobile/login.
-Route::post('/login', [MobileAuthController::class, 'login']);
+Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
 
 Route::prefix('mobile')->group(function () {
-    Route::post('/login', [MobileAuthController::class, 'login']);
+    Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
 });
 
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────

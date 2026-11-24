@@ -77,7 +77,7 @@ class IntegrationController extends Controller
             'favicon_url' => "https://www.google.com/s2/favicons?domain={$host}&sz=64",
         ]);
 
-        return response()->json($this->formatIntegration($integration), 201);
+        return response()->json($this->formatIntegration($integration, includeSecret: true), 201);
     }
 
     public function update(Request $request, Integration $integration): JsonResponse
@@ -170,11 +170,11 @@ class IntegrationController extends Controller
         // ── Deduplication guard ──────────────────────────────────────────────
         // If the user refreshes the gate page we must NOT create a second
         // pending event for the same integration. Reuse any pending event
-        // that was created within the last 2 minutes.
+        // that was created within the active pending expiry window.
         if (! $isFirst) {
             $existing = LoginEvent::where('integration_id', $integration->id)
                 ->where('status', 'pending')
-                ->where('created_at', '>=', now()->subMinutes(2))
+                ->where('created_at', '>=', now()->subSeconds(LoginEvent::PENDING_EXPIRY_SECONDS))
                 ->latest()
                 ->first();
 
@@ -296,7 +296,7 @@ class IntegrationController extends Controller
     public function pendingApprovals(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $cutoff = now()->subMinutes(5);
+        $cutoff = now()->subSeconds(LoginEvent::PENDING_EXPIRY_SECONDS);
 
         LoginEvent::where('user_id', $userId)
             ->where('status', 'pending')
@@ -427,19 +427,24 @@ class IntegrationController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function formatIntegration(Integration $i): array
+    private function formatIntegration(Integration $i, bool $includeSecret = false): array
     {
-        return [
+        $payload = [
             'id' => $i->id,
             'name' => $i->name,
             'url' => $i->url,
-            'secret_key' => $i->secret_key,
             'gate_token' => $i->gate_token,
             'gate_url' => $i->gateUrl(),
             'is_active' => $i->is_active,
             'favicon_url' => $i->favicon_url ?? $i->favicon,
             'created_at' => $i->created_at,
         ];
+
+        if ($includeSecret) {
+            $payload['secret_key'] = $i->secret_key;
+        }
+
+        return $payload;
     }
 
     private function sendPushApproval(User $user, Integration $integration, LoginEvent $event): void

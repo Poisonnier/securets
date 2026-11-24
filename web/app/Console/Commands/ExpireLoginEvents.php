@@ -8,22 +8,26 @@ use Illuminate\Console\Command;
 class ExpireLoginEvents extends Command
 {
     protected $signature = 'integrations:expire-pending-events
-                            {--minutes=45 : Mark pending events older than this many minutes as expired}';
+                            {--seconds='.LoginEvent::PENDING_EXPIRY_SECONDS.' : Mark pending events older than this many seconds as expired}
+                            {--minutes= : Legacy override in minutes}';
 
     protected $description = 'Mark stale pending login events as expired so they do not queue indefinitely.';
 
     public function handle(): int
     {
-        $minutes = (int) $this->option('minutes');
+        $minutesOption = $this->option('minutes');
+        $seconds = $minutesOption !== null && $minutesOption !== ''
+            ? (int) $minutesOption * 60
+            : (int) $this->option('seconds');
 
-        $count = LoginEvent::overduePending($minutes)
+        $count = LoginEvent::overduePending($seconds)
             ->update(['status' => 'expired']);
 
         $this->info(sprintf(
-            '[%s] Expired %d pending login event(s) older than %d minutes.',
+            '[%s] Expired %d pending login event(s) older than %d seconds.',
             now()->toDateTimeString(),
             $count,
-            $minutes,
+            $seconds,
         ));
 
         return self::SUCCESS;
