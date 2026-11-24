@@ -64,14 +64,16 @@ class AuthController extends Controller
             'password' => ['required', 'min:8', 'confirmed'],
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
-        return redirect()->route('login')
-            ->with('success', 'Account created successfully! Please log in.');
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('integrations');
     }
 
     // ── Dashboard ─────────────────────────────────────────────

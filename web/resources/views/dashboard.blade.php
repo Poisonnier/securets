@@ -134,10 +134,10 @@
                         @foreach ($recentLoginRequests as $event)
                             <tr class="hover:bg-[#0E1326]/40 transition-colors">
                                 <td class="py-3 px-5 font-medium text-white">
-                                    {{ $event->integration?->app_name ?? $event->app_name ?? 'External Application' }}
+                                    {{ $event->integration?->name ?? 'External Application' }}
                                 </td>
                                 <td class="py-3 px-5 font-mono text-slate-300">
-                                    {{ $event->username ?? $event->email ?? '—' }}
+                                    {{ $event->credential_username ?? '—' }}
                                 </td>
                                 <td class="py-3 px-5 font-mono text-slate-400">
                                     {{ $event->ip_address ?? '—' }}

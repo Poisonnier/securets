@@ -33,14 +33,11 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <div class="hidden sm:flex items-center gap-2 bg-[#1C2236] border border-gray-700/50 rounded-md px-3 py-1.5 text-xs text-slate-400 focus-within:border-[#00BBFF] focus-within:ring-1 focus-within:ring-[#00BBFF] transition">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500">
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <input type="text" placeholder="Search docs..." class="bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 w-28 text-xs">
-                </div>
-                <a href="{{ route('login') }}" id="signInBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-2 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">Sign In</a>
+            <div class="flex items-center gap-4">
+                <a href="{{ route('login') }}" id="signInBtn" class="text-xs font-medium text-slate-300 hover:text-[#00BBFF] transition-colors focus:outline-none">Log in</a>
+                @guest
+                    <a href="{{ route('register') }}" id="signUpBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-2 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">Get Started</a>
+                @endguest
             </div>
         </nav>
 
