@@ -20,7 +20,9 @@ test('profile page is displayed for authenticated user', function () {
         ->assertOk()
         ->assertSee('Profile details')
         ->assertSee('John Doe')
-        ->assertSee('john@example.com');
+        ->assertSee('john@example.com')
+        ->assertSee('new-securets-logo-dark.png', false)
+        ->assertSee('My Apps');
 });
 
 test('profile information can be updated', function () {

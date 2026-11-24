@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\ProfileController;
@@ -67,6 +68,9 @@ Route::middleware('auth')->group(function () {
         // Browser extension pairing token
         Route::get('/extension-token', [ExtensionController::class, 'showToken']);
         Route::post('/extension-token/rotate', [ExtensionController::class, 'rotateToken']);
+
+        // Paired mobile devices management
+        Route::delete('/devices/{device}', [DeviceController::class, 'destroy']);
     });
 
     // ── Subscription pages ────────────────────────────────────────────────────

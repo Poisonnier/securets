@@ -26,7 +26,7 @@ class UpdateSettingsRequest extends FormRequest
         return [
             'email_notifications' => ['nullable', 'boolean'],
             'mobile_push' => ['nullable', 'boolean'],
-            'theme' => ['required', 'string', Rule::in(['dark', 'light', 'system'])],
+            'theme' => ['nullable', 'string', Rule::in(['dark'])],
         ];
     }
 }
