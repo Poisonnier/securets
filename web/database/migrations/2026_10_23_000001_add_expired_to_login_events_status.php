@@ -32,8 +32,13 @@ return new class extends Migration
                 "ALTER TABLE login_events ADD CONSTRAINT login_events_status_check
                  CHECK (status IN ('pending','approved','declined','auto','expired'))"
             );
+        } elseif ($driver === 'sqlite') {
+            Schema::table('login_events', function (Blueprint $table) {
+                $table->enum('status', ['pending', 'approved', 'declined', 'auto', 'expired'])
+                    ->default('pending')
+                    ->change();
+            });
         }
-        // SQLite: VARCHAR column already accepts any value — nothing to alter.
     }
 
     public function down(): void

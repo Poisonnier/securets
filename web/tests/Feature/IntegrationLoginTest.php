@@ -185,7 +185,10 @@ test('the hosted gate shows the linked app area beside the login flow', function
         ->assertOk()
         ->assertSee('App Preview')
         ->assertSee('will open here after SecureTS finishes the current login check')
-        ->assertSee('Open '.$integration->name);
+        ->assertSee('Open '.$integration->name)
+        ->assertSee('Session Verified')
+        ->assertSee('Continue to App')
+        ->assertDontSee('<iframe id="previewFrame"', false);
 });
 
 test('pending approvals endpoint returns matching events and is not shadowed by the public event route', function () {
@@ -217,4 +220,57 @@ test('pending approvals endpoint returns matching events and is not shadowed by 
 
     $ids = collect($response->json())->pluck('id');
     expect($ids)->toContain($eventId);
+});
+
+test('pending login events expire after 60 seconds in pendingApprovals and ExpireLoginEvents command', function () {
+    $user = User::factory()->create();
+    $integration = makeIntegration($user);
+
+    $stalePending = LoginEvent::create([
+        'integration_id' => $integration->id,
+        'user_id' => $user->id,
+        'status' => 'pending',
+    ]);
+    LoginEvent::whereKey($stalePending->id)->update(['created_at' => now()->subSeconds(61)]);
+
+    $freshPending = LoginEvent::create([
+        'integration_id' => $integration->id,
+        'user_id' => $user->id,
+        'status' => 'pending',
+    ]);
+    LoginEvent::whereKey($freshPending->id)->update(['created_at' => now()->subSeconds(30)]);
+
+    Sanctum::actingAs($user);
+    $response = $this->getJson('/api/login-events/pending')->assertOk();
+
+    $ids = collect($response->json())->pluck('id');
+    expect($ids)->toContain($freshPending->id)
+        ->and($ids)->not->toContain($stalePending->id)
+        ->and($stalePending->fresh()->status)->toBe('expired');
+
+    $commandPending = LoginEvent::create([
+        'integration_id' => $integration->id,
+        'user_id' => $user->id,
+        'status' => 'pending',
+    ]);
+    LoginEvent::whereKey($commandPending->id)->update(['created_at' => now()->subSeconds(61)]);
+
+    $this->artisan('integrations:expire-pending-events')->assertSuccessful();
+
+    expect($commandPending->fresh()->status)->toBe('expired')
+        ->and($freshPending->fresh()->status)->toBe('pending');
+});
+
+test('repeated failed login attempts are rate limited with HTTP 429', function () {
+    for ($i = 0; $i < 10; $i++) {
+        $this->post('/login', [
+            'email' => 'rate-limit@example.com',
+            'password' => 'wrong-password',
+        ]);
+    }
+
+    $this->post('/login', [
+        'email' => 'rate-limit@example.com',
+        'password' => 'wrong-password',
+    ])->assertTooManyRequests();
 });
