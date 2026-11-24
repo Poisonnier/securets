@@ -36,6 +36,12 @@ const endpointUrl = (index) => ENDPOINTS[index] ?? ENDPOINTS[0];
 /** The endpoint currently in use — the last one known to be reachable. */
 export const getApiBaseUrl = () => endpointUrl(activeEndpoint);
 
+/** Web origin derived from the active API endpoint (strips trailing /api). */
+export const getGoogleAuthRedirectUrl = () => {
+  const webRoot = getApiBaseUrl().replace(/\/api\/?$/, '');
+  return `${webRoot}/auth/google/redirect?client=mobile`;
+};
+
 /** Every configured endpoint, in the order the client tries them. */
 export const getConfiguredEndpoints = () => [...ENDPOINTS];
 
@@ -209,5 +215,19 @@ API.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+export const exchangeGoogleAuthCode = async (code) => {
+  const res = await API.post('/mobile/auth/google/exchange', {
+    code,
+    device_name: `${Platform.OS}_mobile_app`,
+  });
+
+  if (!res.data?.token) {
+    throw new Error('Google sign-in response did not include an authentication token.');
+  }
+
+  await setStoredToken(res.data.token, { expiresAt: res.data.expires_at });
+  return res.data;
+};
 
 export default API;

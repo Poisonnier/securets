@@ -9,9 +9,11 @@
     ],
     "license": "MIT",
     "require": {
-        "laravel/sanctum": "^4.0",
         "php": "^8.3",
         "laravel/framework": "^13.17",
+        "laravel/reverb": "^1.0",
+        "laravel/sanctum": "^4.0",
+        "laravel/socialite": "^5.33",
         "laravel/tinker": "^3.0",
         "livewire/blaze": "^1.0",
         "livewire/livewire": "^4.1",

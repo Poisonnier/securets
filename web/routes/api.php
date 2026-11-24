@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\MobileAuthController;
 use App\Http\Controllers\SubscriptionController;
@@ -14,6 +15,7 @@ Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throt
 
 Route::prefix('mobile')->group(function () {
     Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/auth/google/exchange', [GoogleAuthController::class, 'exchangeMobileCode'])->middleware('throttle:10,1');
 });
 
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────
