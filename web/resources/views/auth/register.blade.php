@@ -31,14 +31,14 @@
 
         <!-- Top navigation & Brand -->
         <div class="flex items-center justify-between mb-6">
-            <a href="{{ route('login') }}"
+            <a href="{{ route('home') }}"
                 class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-[#00BBFF] transition-colors focus:outline-none focus:text-[#00BBFF]"
-                aria-label="Back to login">
+                aria-label="Back to home">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 5l-7 7 7 7" />
                 </svg>
-                Back
+                Back to home
             </a>
             <img src="{{ asset('images/new-securets-logo-dark.png') }}" alt="SecureThreatShield Logo"
                 class="h-7 w-auto">
