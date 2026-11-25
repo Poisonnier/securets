@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Admin\AdminPreferences;
+use App\Admin\AdminTables;
+use App\Admin\SubscriptionStats;
 use App\Http\Controllers\Controller;
 use App\Models\Device;
 use App\Models\User;
@@ -15,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Throwable;
 
 class AdminDashboardController extends Controller
@@ -35,14 +39,58 @@ class AdminDashboardController extends Controller
     /**
      * Admin Dashboard: Account Recovery & Device Kill Switch Control Center
      */
-    public function dashboard(Request $request): View
+    public function dashboard(Request $request, AdminPreferences $preferences): View
     {
-        return view()->file(base_path('dashboard.blade.php'));
+        return view()->file(base_path('dashboard.blade.php'), [
+            'preferences' => $preferences->get(Auth::id()),
+            'preferenceOptions' => AdminPreferences::OPTIONS,
+        ]);
     }
 
+    /**
+     * Full payload used by the admin mobile app. Keep its shape unchanged.
+     */
     public function overview(): JsonResponse
     {
         return response()->json($this->dashboardPayload());
+    }
+
+    /**
+     * Headline numbers for the web dashboard. The tables themselves load page
+     * by page from /admin/api/tables/{table} (see AdminTableController).
+     */
+    public function summary(AdminTables $tables, SubscriptionStats $stats): JsonResponse
+    {
+        $database = $this->databaseHealth();
+        $sessions = $tables->count('sessions');
+        $flaggedDevices = $tables->count('devices');
+
+        return response()->json([
+            'adminName' => Auth::user()?->name ?? 'Admin',
+            'metrics' => [
+                'users' => User::query()->whereNull('archived_at')->count(),
+                'sessions' => $sessions,
+                'devices' => $flaggedDevices,
+                'health' => $database['status'],
+            ],
+            'system' => ['database' => $database],
+            'subscriptions' => $stats->summary(),
+        ]);
+    }
+
+    public function savePreferences(Request $request, AdminPreferences $preferences): JsonResponse
+    {
+        $data = $request->validate([
+            'theme' => ['required', 'string', Rule::in(AdminPreferences::OPTIONS['theme'])],
+            'accent' => ['required', 'string', Rule::in(AdminPreferences::OPTIONS['accent'])],
+            'density' => ['required', 'string', Rule::in(AdminPreferences::OPTIONS['density'])],
+            'start_page' => ['required', 'string', Rule::in(AdminPreferences::OPTIONS['start_page'])],
+        ]);
+
+        return response()->json([
+            'message' => 'Your display preferences were saved.',
+            'preferences' => $preferences->save((int) Auth::id(), $data),
+        ]);
     }
 
     /**

@@ -37,7 +37,8 @@
                 <p class="text-xs text-text" role="alert">{{ $message }}</p>
             @enderror
 
-            <button type="submit" class="min-h-11 px-4 py-2 rounded-lg bg-primary text-text text-sm font-medium transition-colors duration-150 ease-out">Sign in</button>
+            <button type="submit" class="min-h-11 px-4 py-2 rounded-lg bg-primary text-text text-sm font-medium transition-colors duration-150 ease-out">Continue</button>
+            <p class="text-xs text-text-muted">After your password, we email a 6-digit code to finish signing in.</p>
         </form>
     </main>
 </body>
