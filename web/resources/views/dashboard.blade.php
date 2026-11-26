@@ -6,7 +6,7 @@
 @section('content')
     @php
         $connectedAppsCount = $connectedAppsCount ?? Auth::user()?->integrations()->count() ?? 0;
-        $recentLoginRequests = $recentLoginRequests ?? Auth::user()?->loginEvents()->with('integration')->latest()->limit(5)->get() ?? collect();
+        $recentLoginRequests = $recentLoginRequests ?? Auth::user()?->loginEvents()->where('is_archived', false)->with('integration')->latest()->limit(5)->get() ?? collect();
     @endphp
 
     {{-- Page Header --}}
@@ -101,6 +101,40 @@
         </div>
     </div>
 
+    {{-- 3-Step Quickstart Card when User has 0 Integrations --}}
+    @if ($connectedAppsCount === 0)
+        <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6 mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                <div>
+                    <span class="text-[11px] font-mono uppercase tracking-wider text-[#00BBFF]">Workspace Quickstart</span>
+                    <h2 class="text-sm font-semibold text-white mt-0.5">Get Started in 3 Steps</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">Protect your first external application with out-of-band mobile push approvals and TOTP.</p>
+                </div>
+                <a href="{{ route('integrations') }}"
+                   class="inline-flex items-center justify-center bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-4 py-2 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] shrink-0">
+                    Connect Your First App →
+                </a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                    <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 1</span>
+                    <h3 class="text-xs font-semibold text-white mt-1">1. Connect an App</h3>
+                    <p class="text-xs text-slate-400 mt-1">Register your application login URL in the Integration Hub to receive your gate link and secret key.</p>
+                </div>
+                <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                    <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 2</span>
+                    <h3 class="text-xs font-semibold text-white mt-1">2. Test Gate in Browser</h3>
+                    <p class="text-xs text-slate-400 mt-1">Launch the gate URL in your browser to verify first-visit auto-approval and challenge creation.</p>
+                </div>
+                <div class="bg-[#0E1326] border border-gray-700/50 rounded-md p-4">
+                    <span class="text-[11px] font-mono text-[#00BBFF] uppercase tracking-wider">Step 3</span>
+                    <h3 class="text-xs font-semibold text-white mt-1">3. Pair Mobile / Extension</h3>
+                    <p class="text-xs text-slate-400 mt-1">Pair the SecureTS mobile authenticator or browser extension to approve live login requests.</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Recent Login Requests Table Card --}}
     <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-700/50 flex items-center justify-between">
@@ -127,17 +161,18 @@
                             <th class="py-2.5 px-5 font-medium">Identifier</th>
                             <th class="py-2.5 px-5 font-medium">IP / Origin</th>
                             <th class="py-2.5 px-5 font-medium">Status</th>
-                            <th class="py-2.5 px-5 font-medium text-right">Timestamp</th>
+                            <th class="py-2.5 px-5 font-medium">Timestamp</th>
+                            <th class="py-2.5 px-5 font-medium text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-700/50 text-xs">
                         @foreach ($recentLoginRequests as $event)
-                            <tr class="hover:bg-[#0E1326]/40 transition-colors">
+                            <tr id="dash-event-{{ $event->id }}" class="hover:bg-[#0E1326]/40 transition-colors">
                                 <td class="py-3 px-5 font-medium text-white">
-                                    {{ $event->integration?->app_name ?? $event->app_name ?? 'External Application' }}
+                                    {{ $event->integration?->name ?? 'External Application' }}
                                 </td>
                                 <td class="py-3 px-5 font-mono text-slate-300">
-                                    {{ $event->username ?? $event->email ?? '—' }}
+                                    {{ $event->credential_username ?? '—' }}
                                 </td>
                                 <td class="py-3 px-5 font-mono text-slate-400">
                                     {{ $event->ip_address ?? '—' }}
@@ -155,8 +190,20 @@
                                         {{ $status }}
                                     </span>
                                 </td>
-                                <td class="py-3 px-5 font-mono text-slate-400 text-right">
+                                <td class="py-3 px-5 font-mono text-slate-400">
                                     {{ $event->created_at?->diffForHumans() ?? '—' }}
+                                </td>
+                                <td class="py-3 px-5 text-right">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <button type="button" onclick="archiveDashboardEvent({{ $event->id }})"
+                                            class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-300 bg-[#0E1326] hover:border-[#00BBFF]/60 border border-gray-700/50 transition-colors cursor-pointer">
+                                            Archive
+                                        </button>
+                                        <button type="button" onclick="deleteDashboardEvent({{ $event->id }})"
+                                            class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-300 bg-[#0E1326] hover:border-red-400/60 hover:text-red-300 border border-gray-700/50 transition-colors cursor-pointer">
+                                            Delete
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -166,3 +213,32 @@
         @endif
     </div>
 @endsection
+
+@push('scripts')
+<script>
+const DASH_CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+
+async function archiveDashboardEvent(eventId) {
+    try {
+        const res = await fetch(`/web/login-events/${eventId}/archive`, {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': DASH_CSRF, 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('dash-event-' + eventId)?.remove();
+    } catch (_) {}
+}
+
+async function deleteDashboardEvent(eventId) {
+    if (!window.confirm('Permanently delete this login event?')) return;
+    try {
+        const res = await fetch(`/web/login-events/${eventId}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': DASH_CSRF, 'Accept': 'application/json' },
+        });
+        if (!res.ok) throw new Error();
+        document.getElementById('dash-event-' + eventId)?.remove();
+    } catch (_) {}
+}
+</script>
+@endpush

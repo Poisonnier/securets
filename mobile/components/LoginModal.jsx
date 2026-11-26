@@ -5,7 +5,14 @@ import {
   KeyboardAvoidingView, ScrollView,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import API, { getConfiguredEndpoints, AUTH_SESSION_LABEL, setStoredToken } from '../src/api/client';
+import * as WebBrowser from 'expo-web-browser';
+import API, {
+  getConfiguredEndpoints,
+  AUTH_SESSION_LABEL,
+  setStoredToken,
+  getGoogleAuthRedirectUrl,
+  exchangeGoogleAuthCode,
+} from '../src/api/client';
 import { useTheme } from '../src/theme/ThemeContext';
 
 const LOGO_ASSET = require('./new-securets-logo-dark.png');
@@ -25,7 +32,53 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
   const [showPw,   setShowPw]   = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const isBusy = loading || googleLoading;
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(
+        getGoogleAuthRedirectUrl(),
+        'securets://auth/google',
+      );
+
+      if (result.type !== 'success' || !result.url) {
+        return;
+      }
+
+      const queryString = result.url.includes('?') ? result.url.split('?')[1].split('#')[0] : '';
+      const params = new URLSearchParams(queryString);
+      const oauthError = params.get('error');
+      const code = params.get('code');
+
+      if (oauthError) {
+        setError('Google authentication failed or was cancelled. Please try again.');
+        return;
+      }
+
+      if (!code) {
+        setError('Google sign-in did not return an authorization code.');
+        return;
+      }
+
+      const data = await exchangeGoogleAuthCode(code);
+      setEmail('');
+      setPassword('');
+      setError('');
+      onLoginSuccess?.(data.user);
+    } catch (e) {
+      const msg = e?.response?.data?.message
+        || e?.response?.data?.errors?.code?.[0]
+        || e?.message
+        || 'Google sign-in failed. Please try again.';
+      setError(msg);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -170,15 +223,41 @@ export default function LoginModal({ visible, onClose, onLoginSuccess }) {
 
           {/* Submit */}
           <TouchableOpacity
-            style={[styles.btn, loading && styles.btnDisabled]}
+            style={[styles.btn, isBusy && styles.btnDisabled]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={isBusy}
             activeOpacity={0.85}
           >
             {loading
               ? <ActivityIndicator color="#fff" size="small" />
               : <Text style={styles.btnText}>Sign In</Text>
             }
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Continue with Google */}
+          <TouchableOpacity
+            style={[styles.googleBtn, isBusy && styles.btnDisabled]}
+            onPress={handleGoogleLogin}
+            disabled={isBusy}
+            activeOpacity={0.85}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <View style={styles.googleBadge}>
+                  <Text style={styles.googleBadgeText}>G</Text>
+                </View>
+                <Text style={styles.googleBtnText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.sessionNote}>
@@ -308,6 +387,56 @@ const createStyles = (C) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 14,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  dividerText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    paddingHorizontal: 12,
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0E1326',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    gap: 10,
+  },
+  googleBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#1C2236',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleBadgeText: {
+    color: '#00BBFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  googleBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   sessionNote: {
     color: C.muted,

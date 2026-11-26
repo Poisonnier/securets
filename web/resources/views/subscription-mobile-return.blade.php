@@ -4,40 +4,25 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title }} – SecureThreatShield</title>
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0F172A; color: #F8FAFC;
-            min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            padding: 32px; text-align: center;
-        }
-
-        .card { max-width: 420px; }
-        .icon { font-size: 48px; margin-bottom: 16px; }
-        h1 { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
-        p  { font-size: 14px; color: #94A3B8; line-height: 22px; margin-bottom: 24px; }
-        .btn {
-            display: inline-block; background: #3D5AF1; color: #fff;
-            text-decoration: none; font-weight: 700; font-size: 14px;
-            padding: 13px 22px; border-radius: 12px;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
-    <div class="card" id="mobile-return" data-redirect="{{ $redirect }}">
-        <div class="icon">{{ $icon }}</div>
-        <h1>{{ $title }}</h1>
-        <p>{{ $message }}</p>
+<body class="min-h-screen bg-[#0E1326] text-white antialiased flex items-center justify-center p-6 text-center">
+    <div class="w-full max-w-md bg-[#1C2236] border border-gray-700/50 rounded-lg p-6" id="mobile-return" data-redirect="{{ $redirect }}">
+        <div class="text-4xl mb-4">{{ $icon }}</div>
+        <h1 class="text-lg font-semibold text-white mb-2">{{ $title }}</h1>
+        <p class="text-xs text-slate-400 leading-relaxed mb-6">{{ $message }}</p>
 
         @if ($redirect)
-            <a class="btn" href="{{ $redirect }}">Return to App</a>
+            <a class="inline-block bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-5 py-2.5 rounded-md border border-gray-700/50 transition-colors" href="{{ $redirect }}">
+                Return to App
+            </a>
         @endif
     </div>
 
     <script>
-        // Bounce straight back into the app so the in-app browser closes itself.
         var card     = document.getElementById('mobile-return');
         var redirect = card ? card.dataset.redirect : '';
 

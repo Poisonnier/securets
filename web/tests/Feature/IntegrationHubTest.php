@@ -11,8 +11,60 @@ test('guests are sent to login when opening the integration hub', function () {
 test('the landing page links to sign in', function () {
     $this->get('/')
         ->assertOk()
-        ->assertSee('Sign In', false)
-        ->assertSee(route('login', absolute: false), false);
+        ->assertSee('Log in', false)
+        ->assertSee(route('login', absolute: false), false)
+        ->assertSee('Get Started', false)
+        ->assertSee(route('register', absolute: false), false)
+        ->assertSee('Pricing', false)
+        ->assertSee('#pricing', false)
+        ->assertSee('Subscription Plans')
+        ->assertSee('Free')
+        ->assertSee('Pro')
+        ->assertSee('Ultra')
+        ->assertSee('Ultra Plus')
+        ->assertSee('Verify Session');
+});
+
+test('the register page renders a back to home link pointing to the landing page', function () {
+    $this->get(route('register'))
+        ->assertOk()
+        ->assertSee('Back to home')
+        ->assertSee('href="'.route('home').'"', false);
+});
+
+test('registration authenticates the user and redirects to the integration hub', function () {
+    $response = $this->post('/register', [
+        'name' => 'Jane Developer',
+        'email' => 'jane@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertRedirect(route('integrations'));
+    $this->assertAuthenticated();
+});
+
+test('dashboard renders integration name and credential username for recent login events', function () {
+    $user = User::factory()->create();
+    $integration = $user->integrations()->create([
+        'name' => 'Billing Portal',
+        'url' => 'https://billing.example/login',
+        'secret_key' => 'SECRETKEY1234567',
+        'is_active' => true,
+    ]);
+
+    $integration->loginEvents()->create([
+        'user_id' => $user->id,
+        'credential_username' => 'ops-admin@example.com',
+        'ip_address' => '198.51.100.42',
+        'status' => 'approved',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Billing Portal')
+        ->assertSee('ops-admin@example.com');
 });
 
 test('a signed-in user can open the integration hub', function () {
@@ -56,7 +108,58 @@ test('a user can add an external app on the web hub', function () {
         ->get(route('integrations'))
         ->assertOk()
         ->assertSee('Payroll')
-        ->assertSee('https://payroll.example/login');
+        ->assertSee('https://payroll.example/login')
+        ->assertSee('Open Gate');
+});
+
+test('dashboard renders the 3-step quickstart when the user has 0 integrations', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('1. Connect an App')
+        ->assertSee('2. Test Gate in Browser')
+        ->assertSee('3. Pair Mobile / Extension')
+        ->assertSee('Connect Your First App');
+});
+
+test('owning user can archive and delete login events on web while unauthorized users are rejected', function () {
+    $owner = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    $integration = $owner->integrations()->create([
+        'name' => 'Internal Wiki',
+        'url' => 'https://wiki.example/login',
+        'secret_key' => 'WIKISECRET123456',
+        'is_active' => true,
+    ]);
+
+    $event = $integration->loginEvents()->create([
+        'user_id' => $owner->id,
+        'status' => 'approved',
+    ]);
+
+    // Unauthorized user is forbidden
+    $this->actingAs($stranger)
+        ->patchJson("/web/login-events/{$event->id}/archive")
+        ->assertForbidden();
+
+    $this->actingAs($stranger)
+        ->deleteJson("/web/login-events/{$event->id}")
+        ->assertForbidden();
+
+    // Owner can archive
+    $this->actingAs($owner)
+        ->patchJson("/web/login-events/{$event->id}/archive")
+        ->assertOk();
+    expect($event->fresh()->is_archived)->toBeTrue();
+
+    // Owner can delete
+    $this->actingAs($owner)
+        ->deleteJson("/web/login-events/{$event->id}")
+        ->assertOk();
+    $this->assertDatabaseMissing('login_events', ['id' => $event->id]);
 });
 
 test('card actions hand the app id over as a data attribute instead of inline interpolation', function () {

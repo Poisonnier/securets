@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "SecureTS",
-    "slug": "securehub-mobile",
+    "slug": "securets",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "securets",
@@ -15,6 +15,15 @@
       "visible": "sticky-immersive",
       "barStyle": "light-content",
       "backgroundColor": "#0E1326"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "af9ae02f-0ec2-420c-9f32-a2ace0ca00ee"
+      }
+    },
+    "owner": "mochizukkus-team",
+    "android": {
+      "package": "com.mochizukkusteam.securets"
     }
   }
 }

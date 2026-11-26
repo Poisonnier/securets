@@ -26,12 +26,12 @@ A high-speed, monorepo-based security command center and active session manageme
 
 ### Mobile App (The Command Center)
 
-![Mobile Layout](src/gif/Full%20mobile%20layout%20%28buggy%29.gif)
+![Mobile Layout](src/gif/Full%20mobile%20layout%20%28buggy%29.gif) 
 
 - **Push Login Approvals:** Instant, interactive approve/deny prompts dispatched via high-throughput Laravel Reverb WebSockets and Expo Push Notifications (target p95 latency < 2s).
 - **Device Security Controls:** Remote device locking, token revocation, and account recovery workflows for compromised or lost devices.
 - **Biometric Admin Gates:** Local FaceID / TouchID / biometric authentication guarding high-security operations, token rotations, and sensitive approval confirmations.
-- **TOTP Fallback:** Built-in RFC 6238 time-based one-time password generator (30-second rotating codes with visual countdown indicator) guaranteeing uninterrupted offline authentication.
+- **TOTP Fallback:** Built-in RFC 6238 time-based one-time password generator (30-second rotating codes with visual countdown indicator) guaranteeing uninterrupted offline authentication. 
 
 ---
 

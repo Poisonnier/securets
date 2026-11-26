@@ -25,12 +25,32 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $remember_token
  * @property Carbon|null $archived_at
  * @property string|null $extension_token
+ * @property string|null $google_id
+ * @property string|null $oauth_exchange_code
+ * @property Carbon|null $oauth_exchange_expires_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Subscription|null $subscription
  */
-#[Fillable(['name', 'email', 'password', 'preferences', 'archived_at', 'extension_token'])]
-#[Hidden(['password', 'remember_token', 'extension_token'])]
+#[Fillable([
+    'name',
+    'email',
+    'email_verified_at',
+    'password',
+    'preferences',
+    'archived_at',
+    'extension_token',
+    'google_id',
+    'oauth_exchange_code',
+    'oauth_exchange_expires_at',
+])]
+#[Hidden([
+    'password',
+    'remember_token',
+    'extension_token',
+    'oauth_exchange_code',
+    'oauth_exchange_expires_at',
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -48,6 +68,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'preferences' => 'array',
             'archived_at' => 'datetime',
+            'oauth_exchange_expires_at' => 'datetime',
         ];
     }
 

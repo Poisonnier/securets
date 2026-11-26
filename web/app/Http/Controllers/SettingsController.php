@@ -32,12 +32,14 @@ class SettingsController extends Controller
             $user->preferences ?? []
         );
 
-        $deviceCount = $user->devices()->count();
+        $devices = $user->devices()->latest()->get();
+        $deviceCount = $devices->count();
         $integrationCount = $user->integrations()->count();
 
         return view('account.settings', [
             'user' => $user,
             'preferences' => $preferences,
+            'devices' => $devices,
             'deviceCount' => $deviceCount,
             'integrationCount' => $integrationCount,
         ]);
@@ -55,7 +57,7 @@ class SettingsController extends Controller
         $updated = array_merge($current, [
             'email_notifications' => $request->boolean('email_notifications'),
             'mobile_push' => $request->boolean('mobile_push'),
-            'theme' => $request->validated('theme'),
+            'theme' => $request->validated('theme') ?? ($current['theme'] ?? 'dark'),
         ]);
 
         $user->update(['preferences' => $updated]);

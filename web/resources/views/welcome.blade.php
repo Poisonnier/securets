@@ -8,11 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-[#0E1326] text-slate-100 antialiased selection:bg-[#00BBFF]/20 selection:text-[#00BBFF]">
 
@@ -30,17 +26,15 @@
                     <a href="#about" class="hover:text-[#00BBFF] transition-colors">About</a>
                     <a href="#features" class="hover:text-[#00BBFF] transition-colors">Features</a>
                     <a href="#demo" class="hover:text-[#00BBFF] transition-colors">Live Demo</a>
+                    <a href="#pricing" class="hover:text-[#00BBFF] transition-colors">Pricing</a>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <div class="hidden sm:flex items-center gap-2 bg-[#1C2236] border border-gray-700/50 rounded-md px-3 py-1.5 text-xs text-slate-400 focus-within:border-[#00BBFF] focus-within:ring-1 focus-within:ring-[#00BBFF] transition">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500">
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <input type="text" placeholder="Search docs..." class="bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 w-28 text-xs">
-                </div>
-                <a href="{{ route('login') }}" id="signInBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-2 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">Sign In</a>
+            <div class="flex items-center gap-4">
+                <a href="{{ route('login') }}" id="signInBtn" class="text-xs font-medium text-slate-300 hover:text-[#00BBFF] transition-colors focus:outline-none">Log in</a>
+                @guest
+                    <a href="{{ route('register') }}" id="signUpBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-2 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">Get Started</a>
+                @endguest
             </div>
         </nav>
 
@@ -164,7 +158,7 @@
                 </div>
             </section>
 
-            {{-- STATIC UI DEMO SECTION --}}
+            {{-- INTERACTIVE GATE PREVIEW SECTION --}}
             <section id="demo" class="w-full max-w-4xl mt-12">
                 <div class="bg-[#1C2236] border border-gray-700/50 rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div>
@@ -187,35 +181,204 @@
                         </div>
                     </div>
 
-                    {{-- Static UI Demo Card --}}
+                    {{-- Interactive Sandbox Card --}}
                     <div class="bg-[#0E1326] border border-gray-700/50 rounded-lg p-5 space-y-4">
                         <div class="flex items-center justify-between border-b border-gray-700/50 pb-3">
                             <div class="flex items-center gap-2">
                                 <span class="w-2 h-2 rounded-full bg-[#00BBFF]"></span>
                                 <span class="text-xs font-semibold text-white">Security Challenge</span>
                             </div>
-                            <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">Awaiting Approval</span>
+                            <span id="demoStatusBadge" class="text-[11px] font-mono text-[#00BBFF] bg-[#1C2236] border border-gray-700/50 px-2 py-0.5 rounded">Awaiting Approval</span>
                         </div>
 
-                        <div class="space-y-2">
-                            <div class="text-xs text-slate-400">Enter 6-digit Authenticator Code</div>
-                            <div class="grid grid-cols-6 gap-2 font-mono text-sm text-center">
-                                <div class="bg-[#1C2236] border border-[#00BBFF] rounded py-2 text-white font-semibold">4</div>
-                                <div class="bg-[#1C2236] border border-[#00BBFF] rounded py-2 text-white font-semibold">8</div>
-                                <div class="bg-[#1C2236] border border-[#00BBFF] rounded py-2 text-white font-semibold">2</div>
-                                <div class="bg-[#1C2236] border border-gray-700/50 rounded py-2 text-slate-500">&bull;</div>
-                                <div class="bg-[#1C2236] border border-gray-700/50 rounded py-2 text-slate-500">&bull;</div>
-                                <div class="bg-[#1C2236] border border-gray-700/50 rounded py-2 text-slate-500">&bull;</div>
+                        {{-- Mode Switcher --}}
+                        <div id="demoModeTabs" class="grid grid-cols-2 gap-1.5 bg-[#1C2236] border border-gray-700/50 rounded-md p-1">
+                            <button type="button" id="tabTotpBtn" class="text-xs font-medium py-1.5 px-2.5 rounded bg-[#4063D7] text-white transition-colors focus:outline-none">
+                                6-Digit TOTP
+                            </button>
+                            <button type="button" id="tabPushBtn" class="text-xs font-medium py-1.5 px-2.5 rounded text-slate-400 hover:text-white transition-colors focus:outline-none">
+                                Mobile Push
+                            </button>
+                        </div>
+
+                        {{-- TOTP Verification Flow --}}
+                        <div id="demoTotpPanel" class="space-y-3">
+                            <div class="bg-[#1C2236] border border-gray-700/50 rounded-md p-2.5">
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span class="text-slate-400">Active Demo TOTP:</span>
+                                    <div class="flex items-center gap-2">
+                                        <span id="demoLiveCode" class="font-mono font-semibold text-white tracking-widest">482915</span>
+                                        <button type="button" id="autofillCodeBtn" class="text-[11px] font-mono text-[#00BBFF] hover:underline focus:outline-none">
+                                            Autofill
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="w-full h-1 bg-[#0E1326] rounded overflow-hidden mt-2">
+                                    <div id="demoCountdownBar" class="h-full bg-[#00BBFF] transition-all duration-1000" style="width: 100%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <label for="totpDigit0" class="text-xs text-slate-400">Enter 6-digit Authenticator Code</label>
+                                    <span id="demoTimerLabel" class="text-[11px] font-mono text-slate-500">30s</span>
+                                </div>
+                                <div class="grid grid-cols-6 gap-2 font-mono text-sm text-center">
+                                    @for ($i = 0; $i < 6; $i++)
+                                        <input type="text" id="totpDigit{{ $i }}" maxlength="1" inputmode="numeric" autocomplete="off"
+                                            data-index="{{ $i }}"
+                                            aria-label="Digit {{ $i + 1 }}"
+                                            class="demo-totp-input w-full bg-[#1C2236] border border-gray-700/50 focus:border-[#00BBFF] rounded py-2 text-center text-white font-semibold focus:outline-none transition-colors">
+                                    @endfor
+                                </div>
+                                <p id="demoErrorText" hidden class="text-[11px] font-mono text-slate-300 pt-1">
+                                    Invalid code. Please match the active 6-digit TOTP above.
+                                </p>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-2">
+                                <span class="text-[11px] font-mono text-slate-500">IP: 192.0.2.14 &bull; TLS 1.3</span>
+                                <button type="button" id="verifySessionBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-1.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                                    Verify Session
+                                </button>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-between pt-2">
-                            <span class="text-[11px] font-mono text-slate-500">IP: 192.0.2.14 &bull; TLS 1.3</span>
-                            <span class="bg-[#4063D7]/80 text-white text-xs font-medium px-3 py-1.5 rounded-md border border-gray-700/50 cursor-default">
-                                Verify Session
-                            </span>
+                        {{-- Simulated Mobile Push Flow --}}
+                        <div id="demoPushPanel" hidden class="space-y-3">
+                            <div class="bg-[#1C2236] border border-gray-700/50 rounded-md p-3.5 space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-medium text-white">ThreatShield Mobile Prompt</span>
+                                    <span id="pushSubStatus" class="text-[11px] font-mono text-[#00BBFF]">Dispatched</span>
+                                </div>
+                                <p id="pushPromptDesc" class="text-xs text-slate-400 leading-relaxed">
+                                    Sign-in challenge sent to your paired iOS / Android device. Approve the request below to simulate out-of-band mobile confirmation.
+                                </p>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-1">
+                                <span class="text-[11px] font-mono text-slate-500">Device: iPhone 15 Pro</span>
+                                <button type="button" id="simulatePushApproveBtn" class="bg-[#4063D7] hover:bg-[#4063D7]/90 text-white text-xs font-medium px-3.5 py-1.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                                    Approve on Phone
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Verified State Panel --}}
+                        <div id="demoVerifiedPanel" hidden class="space-y-3 pt-1">
+                            <div class="bg-[#1C2236] border border-[#00BBFF]/50 rounded-md p-4 text-center space-y-1.5">
+                                <div class="text-xs font-mono uppercase tracking-wider text-[#00BBFF]">Session Verified</div>
+                                <p id="demoVerifiedDetail" class="text-xs text-slate-300">
+                                    Cryptographic challenge passed. Target application gate unlocked.
+                                </p>
+                            </div>
+                            <div class="flex items-center justify-between pt-1">
+                                <span class="text-[11px] font-mono text-slate-500">Status: Authenticated</span>
+                                <button type="button" id="resetDemoBtn" class="bg-[#1C2236] hover:border-[#00BBFF]/60 text-slate-200 text-xs font-medium px-3.5 py-1.5 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF] cursor-pointer">
+                                    Reset Demo
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            {{-- PRICING SECTION --}}
+            @php
+                $pricingPlans = config('stripe.plans');
+            @endphp
+            <section id="pricing" class="w-full max-w-4xl mt-16">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-2">
+                    <div>
+                        <span class="text-xs font-mono uppercase tracking-wider text-[#00BBFF]">Workspace Billing</span>
+                        <h2 class="text-xl font-semibold text-white tracking-tight mt-1">Subscription Plans</h2>
+                    </div>
+                    <p class="text-xs text-slate-400 max-w-md">
+                        Scale your application gate capacity and authentication infrastructure tier from prototype to enterprise.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    @foreach ($pricingPlans as $key => $plan)
+                        @php
+                            $isFree = $key === 'free';
+                            $isRecommended = $key === 'pro';
+                            $limitLabel = $plan['limit'] ? $plan['limit'] . ' connected applications' : 'Unlimited connected applications';
+                            $priceValue = $isFree ? '$0' : explode(' ', $plan['price_label'])[0];
+                        @endphp
+
+                        <div class="bg-[#1C2236] border {{ $isRecommended ? 'border-[#4063D7]' : 'border-gray-700/50' }} rounded-lg p-6 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between gap-2 mb-4">
+                                    <h3 class="text-sm font-semibold text-white">{{ $plan['label'] }}</h3>
+                                    @if ($isRecommended)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono text-white bg-[#4063D7] border border-gray-700/50">
+                                            Recommended
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="flex items-baseline gap-1 mb-1">
+                                    <span class="text-2xl font-mono font-semibold text-white">{{ $priceValue }}</span>
+                                    <span class="text-xs text-slate-400">/ month</span>
+                                </div>
+                                <p class="text-xs font-mono text-slate-400 pb-5 mb-5 border-b border-gray-700/50">
+                                    {{ $limitLabel }}
+                                </p>
+
+                                <ul class="space-y-2.5 mb-6 text-xs text-slate-400">
+                                    <li class="flex items-start gap-2">
+                                        <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                        <span>{{ $limitLabel }}</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                        <span>RFC-6238 TOTP Authenticator</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                        <span>Out-of-band Push Approvals</span>
+                                    </li>
+                                    @if (!$isFree)
+                                        <li class="flex items-start gap-2">
+                                            <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                            <span>Priority developer support</span>
+                                        </li>
+                                    @endif
+                                    @if (in_array($key, ['ultra', 'ultra_plus']))
+                                        <li class="flex items-start gap-2">
+                                            <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                            <span>Advanced login telemetry</span>
+                                        </li>
+                                    @endif
+                                    @if ($key === 'ultra_plus')
+                                        <li class="flex items-start gap-2">
+                                            <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                            <span>API access &amp; event webhooks</span>
+                                        </li>
+                                        <li class="flex items-start gap-2">
+                                            <span class="font-mono text-[#00BBFF] shrink-0">✓</span>
+                                            <span>Dedicated account engineer</span>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </div>
+
+                            <div class="pt-4 border-t border-gray-700/50">
+                                @auth
+                                    <a href="{{ route('subscription') }}"
+                                        class="block w-full text-center py-2 px-3 rounded-md text-xs font-medium {{ $isRecommended ? 'bg-[#4063D7] hover:bg-[#4063D7]/90 text-white' : 'bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200' }} border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">
+                                        {{ $isFree ? 'Manage Plan' : 'Upgrade to ' . $plan['label'] }}
+                                    </a>
+                                @else
+                                    <a href="{{ route('register') }}"
+                                        class="block w-full text-center py-2 px-3 rounded-md text-xs font-medium {{ $isRecommended ? 'bg-[#4063D7] hover:bg-[#4063D7]/90 text-white' : 'bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200' }} border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">
+                                        {{ $isFree ? 'Get Started Free' : 'Choose ' . $plan['label'] }}
+                                    </a>
+                                @endauth
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </section>
         </main>
@@ -288,6 +451,157 @@
         document.getElementById('discoverBtn').addEventListener('click', function () {
             document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
         });
+
+        (function () {
+            const inputs = Array.from(document.querySelectorAll('.demo-totp-input'));
+            const liveCodeEl = document.getElementById('demoLiveCode');
+            const autofillBtn = document.getElementById('autofillCodeBtn');
+            const countdownBar = document.getElementById('demoCountdownBar');
+            const timerLabel = document.getElementById('demoTimerLabel');
+            const errorText = document.getElementById('demoErrorText');
+            const verifyBtn = document.getElementById('verifySessionBtn');
+            const statusBadge = document.getElementById('demoStatusBadge');
+            const tabTotpBtn = document.getElementById('tabTotpBtn');
+            const tabPushBtn = document.getElementById('tabPushBtn');
+            const totpPanel = document.getElementById('demoTotpPanel');
+            const pushPanel = document.getElementById('demoPushPanel');
+            const verifiedPanel = document.getElementById('demoVerifiedPanel');
+            const verifiedDetail = document.getElementById('demoVerifiedDetail');
+            const modeTabs = document.getElementById('demoModeTabs');
+            const approvePushBtn = document.getElementById('simulatePushApproveBtn');
+            const resetDemoBtn = document.getElementById('resetDemoBtn');
+
+            let activeCode = '482915';
+            let remainingSeconds = 30;
+            let activeMode = 'totp';
+
+            function generateCode() {
+                let code = '';
+                for (let i = 0; i < 6; i++) {
+                    code += Math.floor(Math.random() * 10).toString();
+                }
+                activeCode = code;
+                liveCodeEl.textContent = activeCode;
+            }
+
+            function setMode(mode) {
+                activeMode = mode;
+                errorText.hidden = true;
+                verifiedPanel.hidden = true;
+                modeTabs.hidden = false;
+
+                if (mode === 'totp') {
+                    totpPanel.hidden = false;
+                    pushPanel.hidden = true;
+                    tabTotpBtn.className = 'text-xs font-medium py-1.5 px-2.5 rounded bg-[#4063D7] text-white transition-colors focus:outline-none';
+                    tabPushBtn.className = 'text-xs font-medium py-1.5 px-2.5 rounded text-slate-400 hover:text-white transition-colors focus:outline-none';
+                    statusBadge.textContent = 'Awaiting Approval';
+                } else {
+                    totpPanel.hidden = true;
+                    pushPanel.hidden = false;
+                    tabPushBtn.className = 'text-xs font-medium py-1.5 px-2.5 rounded bg-[#4063D7] text-white transition-colors focus:outline-none';
+                    tabTotpBtn.className = 'text-xs font-medium py-1.5 px-2.5 rounded text-slate-400 hover:text-white transition-colors focus:outline-none';
+                    statusBadge.textContent = 'Awaiting Mobile Approval';
+                }
+            }
+
+            function showVerified(message) {
+                totpPanel.hidden = true;
+                pushPanel.hidden = true;
+                modeTabs.hidden = true;
+                verifiedPanel.hidden = false;
+                verifiedDetail.textContent = message;
+                statusBadge.textContent = 'Session Verified';
+            }
+
+            tabTotpBtn.addEventListener('click', function () {
+                setMode('totp');
+            });
+
+            tabPushBtn.addEventListener('click', function () {
+                setMode('push');
+            });
+
+            autofillBtn.addEventListener('click', function () {
+                errorText.hidden = true;
+                activeCode.split('').forEach(function (digit, idx) {
+                    if (inputs[idx]) {
+                        inputs[idx].value = digit;
+                    }
+                });
+                if (inputs[5]) {
+                    inputs[5].focus();
+                }
+            });
+
+            inputs.forEach(function (input, idx) {
+                input.addEventListener('input', function (e) {
+                    errorText.hidden = true;
+                    const val = e.target.value.replace(/\D/g, '');
+                    e.target.value = val ? val[0] : '';
+                    if (e.target.value && idx < inputs.length - 1) {
+                        inputs[idx + 1].focus();
+                    }
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Backspace' && !input.value && idx > 0) {
+                        inputs[idx - 1].focus();
+                    } else if (e.key === 'Enter') {
+                        verifyBtn.click();
+                    }
+                });
+
+                input.addEventListener('paste', function (e) {
+                    e.preventDefault();
+                    errorText.hidden = true;
+                    const pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+                    pasted.split('').forEach(function (ch, i) {
+                        if (inputs[i]) {
+                            inputs[i].value = ch;
+                        }
+                    });
+                    const targetIdx = Math.min(pasted.length, inputs.length - 1);
+                    if (inputs[targetIdx]) {
+                        inputs[targetIdx].focus();
+                    }
+                });
+            });
+
+            verifyBtn.addEventListener('click', function () {
+                const entered = inputs.map(function (el) { return el.value; }).join('');
+                if (entered === activeCode) {
+                    errorText.hidden = true;
+                    showVerified('6-digit TOTP verified against active rotating secret.');
+                } else {
+                    errorText.hidden = false;
+                    statusBadge.textContent = 'Invalid Code';
+                }
+            });
+
+            approvePushBtn.addEventListener('click', function () {
+                showVerified('Out-of-band mobile push challenge approved on iPhone 15 Pro.');
+            });
+
+            resetDemoBtn.addEventListener('click', function () {
+                inputs.forEach(function (el) { el.value = ''; });
+                generateCode();
+                remainingSeconds = 30;
+                countdownBar.style.width = '100%';
+                timerLabel.textContent = '30s';
+                setMode(activeMode);
+            });
+
+            setInterval(function () {
+                remainingSeconds -= 1;
+                if (remainingSeconds <= 0) {
+                    remainingSeconds = 30;
+                    generateCode();
+                }
+                countdownBar.style.width = ((remainingSeconds / 30) * 100).toFixed(2) + '%';
+                timerLabel.textContent = remainingSeconds + 's';
+            }, 1000);
+        })();
     </script>
 
 </body>

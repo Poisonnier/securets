@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ExtensionController;
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\IntegrationController;
 use App\Http\Controllers\MobileAuthController;
 use App\Http\Controllers\SubscriptionController;
@@ -10,10 +11,11 @@ use Illuminate\Support\Facades\Route;
 // ── Mobile Auth (public) ──────────────────────────────────────────────────────
 // Keep the legacy /api/login path alive so refreshed or cached mobile clients
 // can still sign back in while the app converges on /api/mobile/login.
-Route::post('/login', [MobileAuthController::class, 'login']);
+Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
 
 Route::prefix('mobile')->group(function () {
-    Route::post('/login', [MobileAuthController::class, 'login']);
+    Route::post('/login', [MobileAuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/auth/google/exchange', [GoogleAuthController::class, 'exchangeMobileCode'])->middleware('throttle:10,1');
 });
 
 // ── Target App (secret key, not the user's Sanctum token) ─────────────────────

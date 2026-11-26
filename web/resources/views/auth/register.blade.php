@@ -12,16 +12,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body
@@ -31,14 +22,14 @@
 
         <!-- Top navigation & Brand -->
         <div class="flex items-center justify-between mb-6">
-            <a href="{{ route('login') }}"
+            <a href="{{ route('home') }}"
                 class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-[#00BBFF] transition-colors focus:outline-none focus:text-[#00BBFF]"
-                aria-label="Back to login">
+                aria-label="Back to home">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 5l-7 7 7 7" />
                 </svg>
-                Back
+                Back to home
             </a>
             <img src="{{ asset('images/new-securets-logo-dark.png') }}" alt="SecureThreatShield Logo"
                 class="h-7 w-auto">
@@ -140,8 +131,8 @@
                 <div class="grow border-t border-gray-700/50"></div>
             </div>
 
-            <!-- Continue with Google (UI only) -->
-            <button type="button"
+            <!-- Continue with Google -->
+            <a href="{{ route('auth.google.redirect') }}"
                 class="w-full inline-flex items-center justify-center gap-2.5 bg-[#0E1326] hover:border-[#00BBFF]/60 text-slate-200 text-sm font-medium py-2.5 px-4 rounded-md border border-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BBFF]">
                 <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#EA4335"
@@ -154,7 +145,7 @@
                         d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.9C3.5 21.4 7.4 24 12 24z" />
                 </svg>
                 Continue with Google
-            </button>
+            </a>
 
             <div class="pt-3 border-t border-gray-700/50 text-center">
                 <span class="text-xs text-slate-400">Already have an account?</span>
